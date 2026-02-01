@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model BudgetPlan {
+  id         String           @id @default(cuid())
+  name       String
+  isDefault  Boolean          @default(false)
+  isCustom   Boolean          @default(false)
+  categories BudgetCategory[]
+  userConfig UserConfig[]
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+}
+
+model BudgetCategory {
+  id           String        @id @default(cuid())
+  name         String
+  percentage   Float
+  plan         BudgetPlan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  planId       String
+  transactions Transaction[]
+}
+
+model UserConfig {
+  id           String     @id @default(cuid())
+  activePlan   BudgetPlan @relation(fields: [activePlanId], references: [id])
+  activePlanId String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Transaction {
+  id         String          @id @default(cuid())
+  amount     Float
+  type       TransactionType
+  note       String?
+  date       DateTime        @default(now())
+  category   BudgetCategory  @relation(fields: [categoryId], references: [id])
+  categoryId String
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
