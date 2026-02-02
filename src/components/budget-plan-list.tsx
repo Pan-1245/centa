@@ -5,6 +5,7 @@ import {
   setActiveBudgetPlan,
   createCustomPlan,
   updateBudgetPlan,
+  deleteBudgetPlan,
 } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,14 +17,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check, Pencil, Plus, X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 
 type Plan = {
   id: string;
   name: string;
   isDefault: boolean;
   isCustom: boolean;
-  categories: { id: string; name: string; percentage: number }[];
+  categories: { id: string; name: string; percentage: number; isSavings: boolean }[];
 };
 
 export function BudgetPlanList({
@@ -97,6 +107,9 @@ export function BudgetPlanList({
                         </Button>
                       </form>
                     )}
+                    {!isActive && plan.isCustom && (
+                      <DeletePlanButton planId={plan.id} planName={plan.name} />
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -142,6 +155,7 @@ function EditPlanForm({
       id: c.id,
       name: c.name,
       percentage: String(c.percentage),
+      isSavings: c.isSavings,
     }))
   );
 
@@ -174,8 +188,14 @@ function EditPlanForm({
     );
   };
 
+  const toggleSavings = (index: number) => {
+    setCategories((prev) =>
+      prev.map((c, i) => (i === index ? { ...c, isSavings: !c.isSavings } : c))
+    );
+  };
+
   const addCategory = () => {
-    setCategories((prev) => [...prev, { id: undefined as unknown as string, name: "", percentage: "" }]);
+    setCategories((prev) => [...prev, { id: undefined as unknown as string, name: "", percentage: "", isSavings: false }]);
   };
 
   const removeCategory = (index: number) => {
@@ -201,6 +221,7 @@ function EditPlanForm({
                 id: c.id || undefined,
                 name: c.name,
                 percentage: parseFloat(c.percentage) || 0,
+                isSavings: c.isSavings,
               }))
             )}
           />
@@ -240,12 +261,21 @@ function EditPlanForm({
                   max="100"
                   required
                 />
+                <Button
+                  type="button"
+                  variant={cat.isSavings ? "default" : "outline"}
+                  size="sm"
+                  className="h-9 shrink-0 text-xs"
+                  onClick={() => toggleSavings(i)}
+                >
+                  Savings
+                </Button>
                 {categories.length > 1 && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive"
+                    className="h-9 w-9 shrink-0 p-0 text-muted-foreground hover:text-destructive"
                     onClick={() => removeCategory(i)}
                   >
                     <X className="h-4 w-4" />
@@ -300,8 +330,8 @@ function EditPlanForm({
 
 function CustomPlanForm() {
   const [categories, setCategories] = useState([
-    { name: "", percentage: "" },
-    { name: "", percentage: "" },
+    { name: "", percentage: "", isSavings: false },
+    { name: "", percentage: "", isSavings: false },
   ]);
 
   const [state, formAction, pending] = useActionState(
@@ -312,8 +342,8 @@ function CustomPlanForm() {
       const result = await createCustomPlan(formData);
       if (result.success) {
         setCategories([
-          { name: "", percentage: "" },
-          { name: "", percentage: "" },
+          { name: "", percentage: "", isSavings: false },
+          { name: "", percentage: "", isSavings: false },
         ]);
       }
       return result;
@@ -336,8 +366,14 @@ function CustomPlanForm() {
     );
   };
 
+  const toggleSavings = (index: number) => {
+    setCategories((prev) =>
+      prev.map((c, i) => (i === index ? { ...c, isSavings: !c.isSavings } : c))
+    );
+  };
+
   const addCategory = () => {
-    setCategories((prev) => [...prev, { name: "", percentage: "" }]);
+    setCategories((prev) => [...prev, { name: "", percentage: "", isSavings: false }]);
   };
 
   const removeCategory = (index: number) => {
@@ -361,6 +397,7 @@ function CustomPlanForm() {
               categories.map((c) => ({
                 name: c.name,
                 percentage: parseFloat(c.percentage) || 0,
+                isSavings: c.isSavings,
               }))
             )}
           />
@@ -399,12 +436,21 @@ function CustomPlanForm() {
                   max="100"
                   required
                 />
+                <Button
+                  type="button"
+                  variant={cat.isSavings ? "default" : "outline"}
+                  size="sm"
+                  className="h-9 shrink-0 text-xs"
+                  onClick={() => toggleSavings(i)}
+                >
+                  Savings
+                </Button>
                 {categories.length > 1 && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive"
+                    className="h-9 w-9 shrink-0 p-0 text-muted-foreground hover:text-destructive"
                     onClick={() => removeCategory(i)}
                   >
                     <X className="h-4 w-4" />
@@ -449,5 +495,52 @@ function CustomPlanForm() {
         </form>
       </CardContent>
     </Card>
+  );
+}
+
+function DeletePlanButton({ planId, planName }: { planId: string; planName: string }) {
+  const [open, setOpen] = useState(false);
+  const [state, formAction, pending] = useActionState(
+    async (
+      _prev: { success: boolean; error?: string } | null,
+      formData: FormData
+    ) => {
+      const result = await deleteBudgetPlan(formData);
+      if (result.success) setOpen(false);
+      return result;
+    },
+    null
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive">
+          <Trash2 className="mr-1 h-3.5 w-3.5" />
+          Delete
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete &ldquo;{planName}&rdquo;?</DialogTitle>
+          <DialogDescription>
+            This will permanently delete this plan. Transactions using its categories
+            will lose their category assignment.
+          </DialogDescription>
+        </DialogHeader>
+        {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <form action={formAction}>
+            <input type="hidden" name="planId" value={planId} />
+            <Button type="submit" variant="destructive" disabled={pending}>
+              {pending ? "Deleting..." : "Delete Plan"}
+            </Button>
+          </form>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

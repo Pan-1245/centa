@@ -18,18 +18,18 @@ const presetPlans = [
     name: "50 / 30 / 20",
     description: "A balanced approach for most people.",
     categories: [
-      { name: "Needs", percentage: 50 },
-      { name: "Wants", percentage: 30 },
-      { name: "Savings", percentage: 20 },
+      { name: "Needs", percentage: 50, isSavings: false },
+      { name: "Wants", percentage: 30, isSavings: false },
+      { name: "Savings", percentage: 20, isSavings: true },
     ],
   },
   {
     name: "70 / 20 / 10",
     description: "Prioritize essentials with modest savings.",
     categories: [
-      { name: "Essentials", percentage: 70 },
-      { name: "Leisure", percentage: 20 },
-      { name: "Savings", percentage: 10 },
+      { name: "Essentials", percentage: 70, isSavings: false },
+      { name: "Leisure", percentage: 20, isSavings: false },
+      { name: "Savings", percentage: 10, isSavings: true },
     ],
   },
 ];
@@ -151,8 +151,8 @@ export function SetupForm() {
 
 function CustomPlanSetup({ onBack }: { onBack: () => void }) {
   const [categories, setCategories] = useState([
-    { name: "", percentage: "" },
-    { name: "", percentage: "" },
+    { name: "", percentage: "", isSavings: false },
+    { name: "", percentage: "", isSavings: false },
   ]);
 
   const [state, formAction, pending] = useActionState(
@@ -180,8 +180,14 @@ function CustomPlanSetup({ onBack }: { onBack: () => void }) {
     );
   };
 
+  const toggleSavings = (index: number) => {
+    setCategories((prev) =>
+      prev.map((c, i) => (i === index ? { ...c, isSavings: !c.isSavings } : c))
+    );
+  };
+
   const addCategory = () => {
-    setCategories((prev) => [...prev, { name: "", percentage: "" }]);
+    setCategories((prev) => [...prev, { name: "", percentage: "", isSavings: false }]);
   };
 
   const removeCategory = (index: number) => {
@@ -218,6 +224,7 @@ function CustomPlanSetup({ onBack }: { onBack: () => void }) {
               categories.map((c) => ({
                 name: c.name,
                 percentage: parseFloat(c.percentage) || 0,
+                isSavings: c.isSavings,
               }))
             )}
           />
@@ -256,12 +263,21 @@ function CustomPlanSetup({ onBack }: { onBack: () => void }) {
                   max="100"
                   required
                 />
+                <Button
+                  type="button"
+                  variant={cat.isSavings ? "default" : "outline"}
+                  size="sm"
+                  className="h-9 shrink-0 text-xs"
+                  onClick={() => toggleSavings(i)}
+                >
+                  Savings
+                </Button>
                 {categories.length > 1 && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive"
+                    className="h-9 w-9 shrink-0 p-0 text-muted-foreground hover:text-destructive"
                     onClick={() => removeCategory(i)}
                   >
                     <X className="h-4 w-4" />

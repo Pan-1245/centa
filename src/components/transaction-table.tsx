@@ -1,6 +1,7 @@
 "use client";
 
 import { deleteTransaction } from "@/lib/actions";
+import { formatAmount, type CurrencyCode, type ExchangeRates } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -15,17 +16,31 @@ import { Trash2 } from "lucide-react";
 type Transaction = {
   id: string;
   amount: number;
-  type: "INCOME" | "EXPENSE";
+  type: "INCOME" | "EXPENSE" | "SAVINGS";
   note: string | null;
   date: Date | string;
   category: { id: string; name: string } | null;
+  isRecurring?: boolean;
+  tags?: { tag: { id: string; name: string } }[];
+};
+
+const typeColor = {
+  INCOME: "text-green-600 dark:text-green-400",
+  EXPENSE: "text-red-600 dark:text-red-400",
+  SAVINGS: "text-blue-600 dark:text-blue-400",
 };
 
 export function TransactionTable({
   transactions,
+  currency,
+  rates,
 }: {
   transactions: Transaction[];
+  currency: CurrencyCode;
+  rates: ExchangeRates;
 }) {
+  const fmt = (amount: number) => formatAmount(amount, currency, rates);
+
   if (transactions.length === 0) {
     return (
       <Table>
@@ -34,6 +49,7 @@ export function TransactionTable({
             <TableHead>Date</TableHead>
             <TableHead>Note</TableHead>
             <TableHead>Category</TableHead>
+            <TableHead>Tags</TableHead>
             <TableHead>Type</TableHead>
             <TableHead className="text-right">Amount</TableHead>
             <TableHead className="w-10" />
@@ -42,7 +58,7 @@ export function TransactionTable({
         <TableBody>
           <TableRow>
             <TableCell
-              colSpan={6}
+              colSpan={7}
               className="text-center text-muted-foreground"
             >
               No transactions yet.
@@ -60,6 +76,7 @@ export function TransactionTable({
           <TableHead>Date</TableHead>
           <TableHead>Note</TableHead>
           <TableHead>Category</TableHead>
+          <TableHead>Tags</TableHead>
           <TableHead>Type</TableHead>
           <TableHead className="text-right">Amount</TableHead>
           <TableHead className="w-10" />
@@ -73,7 +90,8 @@ export function TransactionTable({
             day: "numeric",
             year: "numeric",
           });
-          const isIncome = tx.type === "INCOME";
+          const color = typeColor[tx.type];
+          const prefix = tx.type === "INCOME" ? "+" : "-";
 
           return (
             <TableRow key={tx.id}>
@@ -83,25 +101,30 @@ export function TransactionTable({
               </TableCell>
               <TableCell>{tx.category?.name ?? "--"}</TableCell>
               <TableCell>
-                <span
-                  className={
-                    isIncome
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-red-600 dark:text-red-400"
-                  }
-                >
+                <div className="flex flex-wrap gap-1">
+                  {tx.tags?.map(({ tag }) => (
+                    <span
+                      key={tag.id}
+                      className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+                    >
+                      {tag.name}
+                    </span>
+                  ))}
+                </div>
+              </TableCell>
+              <TableCell>
+                <span className={color}>
                   {tx.type}
+                  {tx.isRecurring && (
+                    <span className="ml-1 inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      Auto
+                    </span>
+                  )}
                 </span>
               </TableCell>
               <TableCell className="text-right font-medium">
-                <span
-                  className={
-                    isIncome
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-red-600 dark:text-red-400"
-                  }
-                >
-                  {isIncome ? "+" : "-"}${tx.amount.toFixed(2)}
+                <span className={color}>
+                  {prefix}{fmt(tx.amount)}
                 </span>
               </TableCell>
               <TableCell>

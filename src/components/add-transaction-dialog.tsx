@@ -25,6 +25,7 @@ type Category = {
   id: string;
   name: string;
   percentage: number;
+  isSavings: boolean;
 };
 
 export function AddTransactionDialog({
@@ -35,8 +36,15 @@ export function AddTransactionDialog({
   const [open, setOpen] = useState(false);
   const [type, setType] = useState("EXPENSE");
   const [categoryId, setCategoryId] = useState("");
+  const [amount, setAmount] = useState("");
+  const [tags, setTags] = useState("");
 
   const today = new Date().toISOString().split("T")[0];
+
+  const expenseCategories = categories.filter((c) => !c.isSavings);
+  const savingsCategories = categories.filter((c) => c.isSavings);
+  const visibleCategories = type === "SAVINGS" ? savingsCategories : expenseCategories;
+  const needsCategory = type === "EXPENSE" || type === "SAVINGS";
 
   const [state, formAction, pending] = useActionState(
     async (
@@ -48,6 +56,8 @@ export function AddTransactionDialog({
         setOpen(false);
         setType("EXPENSE");
         setCategoryId("");
+        setAmount("");
+        setTags("");
       }
       return result;
     },
@@ -63,7 +73,7 @@ export function AddTransactionDialog({
         <DialogHeader>
           <DialogTitle>Add Transaction</DialogTitle>
           <DialogDescription>
-            Record a new income or expense.
+            Record a new income, expense, or savings.
           </DialogDescription>
         </DialogHeader>
         <form action={formAction} className="space-y-4">
@@ -72,33 +82,48 @@ export function AddTransactionDialog({
 
           <div className="space-y-2">
             <label htmlFor="amount" className="text-sm font-medium">
-              Amount
+              Amount (฿ THB)
             </label>
+            <input type="hidden" name="amount" value={amount.replace(/,/g, "")} />
             <Input
               id="amount"
-              name="amount"
-              type="number"
-              step="0.01"
-              min="0.01"
+              type="text"
+              inputMode="decimal"
               placeholder="0.00"
+              value={amount}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/,/g, "");
+                if (raw === "" || /^\d*\.?\d{0,2}$/.test(raw)) {
+                  const parts = raw.split(".");
+                  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                  setAmount(parts.join("."));
+                }
+              }}
               required
             />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Type</label>
-            <Select value={type} onValueChange={(v) => { setType(v); if (v === "INCOME") setCategoryId(""); }}>
+            <Select
+              value={type}
+              onValueChange={(v) => {
+                setType(v);
+                setCategoryId("");
+              }}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="EXPENSE">Expense</SelectItem>
+                <SelectItem value="SAVINGS">Savings</SelectItem>
                 <SelectItem value="INCOME">Income</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {type === "EXPENSE" && (
+          {needsCategory && (
             <div className="space-y-2">
               <label className="text-sm font-medium">Category</label>
               <Select value={categoryId} onValueChange={setCategoryId} required>
@@ -106,7 +131,7 @@ export function AddTransactionDialog({
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((cat) => (
+                  {visibleCategories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}
                     </SelectItem>
@@ -121,6 +146,19 @@ export function AddTransactionDialog({
               Note
             </label>
             <Input id="note" name="note" placeholder="Optional note" />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="tags" className="text-sm font-medium">
+              Tags
+            </label>
+            <Input
+              id="tags"
+              name="tags"
+              placeholder="e.g. groceries, weekly (comma-separated)"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+            />
           </div>
 
           <div className="space-y-2">
@@ -141,7 +179,7 @@ export function AddTransactionDialog({
           )}
 
           <DialogFooter>
-            <Button type="submit" disabled={pending || (type === "EXPENSE" && !categoryId)}>
+            <Button type="submit" disabled={pending || (needsCategory && !categoryId)}>
               {pending ? "Adding..." : "Add Transaction"}
             </Button>
           </DialogFooter>
