@@ -5,17 +5,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { redirect } from "next/navigation";
+import { getTransactions, getOrCreateUserConfig } from "@/lib/actions";
+import { AddTransactionDialog } from "@/components/add-transaction-dialog";
+import { TransactionTable } from "@/components/transaction-table";
 
-export default function TransactionsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function TransactionsPage() {
+  const [transactions, config] = await Promise.all([
+    getTransactions(),
+    getOrCreateUserConfig(),
+  ]);
+
+  if (!config) redirect("/setup");
+
+  const categories = config.activePlan.categories;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -27,7 +33,7 @@ export default function TransactionsPage() {
             Track your daily income and spending.
           </p>
         </div>
-        <Button>Add Transaction</Button>
+        <AddTransactionDialog categories={categories} />
       </div>
 
       <Card>
@@ -36,27 +42,7 @@ export default function TransactionsPage() {
           <CardDescription>Your latest income and expenses.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Note</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="text-center text-muted-foreground"
-                >
-                  No transactions yet.
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+          <TransactionTable transactions={transactions} />
         </CardContent>
       </Card>
     </div>
