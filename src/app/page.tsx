@@ -105,9 +105,11 @@ export default async function DashboardPage() {
                   cat.budgeted > 0
                     ? (cat.spent / cat.budgeted) * 100
                     : 0;
-                const pct = Math.min(100, rawPct);
+                const diff = cat.budgeted - cat.spent;
+                const atBudget = diff >= 0 && diff < 1;
+                const pct = atBudget ? 100 : Math.min(100, rawPct);
                 const over = rawPct > 100;
-                const warning = rawPct >= 80 && rawPct <= 100;
+                const warning = !atBudget && rawPct >= 80 && rawPct <= 100;
 
                 return (
                   <div key={cat.name} className="space-y-2">
