@@ -1,0 +1,38 @@
+# <type>(<module>/<layer>): <short summary>
+#
+# Examples:
+#   feat(master-data/application): add MAT101 fund center search
+#   fix(master-data/infrastructure): prevent duplicate migrations
+#   refactor(shared/kernel): standardize domain exceptions
+#   test(master-data/domain): add validation coverage
+#   docs: update API naming conventions
+#
+# Types:
+#   feat      = new feature
+#   fix       = bug fix
+#   refactor  = internal code change, no behavior change
+#   test      = add or update tests
+#   docs      = documentation only
+#   chore     = tooling, config, deps
+#   style     = formatting, naming, linting
+#   perf      = performance improvement
+#   ci        = CI/CD related
+#   hotfix    = urgent production fix
+#
+# Scope guidelines:
+#   module    = master-data | hr | key | fram | shared | api | infra
+#   layer     = domain | application | infrastructure | api | kernel
+#
+# Body (optional):
+#   - What changed?
+#   - Why is this change needed?
+#   - Any important side effects?
+#
+# Footer (optional):
+#   - Breaking changes
+#   - Related ticket / issue ID
+#
+# ------------------------------------------------------------------
+#
+# Write commit message above this line
+#
