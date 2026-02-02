@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Centa
+
+A personal budget planner built with ratio-based budgeting. Track income, categorize expenses, and monitor spending against your budget plan.
+
+## Features
+
+- **Ratio-based budgeting** — split income into categories by percentage (e.g. 50/30/20)
+- **Preset and custom plans** — start with a popular template or define your own categories
+- **Editable plans** — rename categories, adjust percentages, or restructure plans at any time
+- **Income and expense tracking** — log transactions and see spending per category
+- **Dashboard** — monthly overview with income, expenses, remaining balance, and per-category progress
+
+## Tech Stack
+
+- [Next.js](https://nextjs.org) 16 (App Router, Server Actions)
+- [React](https://react.dev) 19
+- [Prisma](https://www.prisma.io) 7 with PostgreSQL
+- [Tailwind CSS](https://tailwindcss.com) 4
+- [shadcn/ui](https://ui.shadcn.com) components
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- pnpm
+- PostgreSQL
+
+### Setup
+
+1. Clone the repository and install dependencies:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Create a `.env` file with your database connection:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+DATABASE_URL="postgresql://user:password@localhost:5432/centa"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Push the database schema:
 
-## Learn More
+```bash
+pnpm db:push
+```
 
-To learn more about Next.js, take a look at the following resources:
+4. Start the development server:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+pnpm dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open [http://localhost:3000](http://localhost:3000) — you'll be guided through the setup flow on first visit.
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Copyright (c) 2026 Pan. All rights reserved. See [LICENSE](LICENSE) for details.
