@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -11,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TransactionTable } from "@/components/transaction-table";
+import { DatePicker } from "@/components/ui/date-picker";
 import { X } from "lucide-react";
 import type { CurrencyCode, ExchangeRates } from "@/lib/currency";
 
@@ -41,8 +41,8 @@ export function TransactionFilters({
   currency: CurrencyCode;
   rates: ExchangeRates;
 }) {
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [tagFilter, setTagFilter] = useState("ALL");
@@ -50,8 +50,16 @@ export function TransactionFilters({
   const filtered = useMemo(() => {
     return transactions.filter((tx) => {
       const txDate = new Date(tx.date);
-      if (dateFrom && txDate < new Date(dateFrom)) return false;
-      if (dateTo && txDate > new Date(dateTo + "T23:59:59")) return false;
+      if (dateFrom) {
+        const from = new Date(dateFrom);
+        from.setHours(0, 0, 0, 0);
+        if (txDate < from) return false;
+      }
+      if (dateTo) {
+        const to = new Date(dateTo);
+        to.setHours(23, 59, 59, 999);
+        if (txDate > to) return false;
+      }
       if (typeFilter !== "ALL" && tx.type !== typeFilter) return false;
       if (categoryFilter !== "ALL" && tx.category?.id !== categoryFilter) return false;
       if (tagFilter !== "ALL" && !tx.tags?.some((t) => t.tag.id === tagFilter)) return false;
@@ -63,8 +71,8 @@ export function TransactionFilters({
     dateFrom || dateTo || typeFilter !== "ALL" || categoryFilter !== "ALL" || tagFilter !== "ALL";
 
   const clearFilters = () => {
-    setDateFrom("");
-    setDateTo("");
+    setDateFrom(undefined);
+    setDateTo(undefined);
     setTypeFilter("ALL");
     setCategoryFilter("ALL");
     setTagFilter("ALL");
@@ -73,25 +81,15 @@ export function TransactionFilters({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-3">
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">From</label>
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="w-auto"
-          />
+          <DatePicker value={dateFrom} onChange={setDateFrom} placeholder="Start date" />
         </div>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">To</label>
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="w-auto"
-          />
+          <DatePicker value={dateTo} onChange={setDateTo} placeholder="End date" />
         </div>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Type</label>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
             <SelectTrigger className="w-[130px]">
@@ -105,7 +103,7 @@ export function TransactionFilters({
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Category</label>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="w-[160px]">
@@ -122,7 +120,7 @@ export function TransactionFilters({
           </Select>
         </div>
         {tags.length > 0 && (
-          <div className="space-y-1">
+          <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-muted-foreground">Tag</label>
             <Select value={tagFilter} onValueChange={setTagFilter}>
               <SelectTrigger className="w-[140px]">

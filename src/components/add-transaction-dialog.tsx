@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type Category = {
   id: string;
@@ -38,8 +39,7 @@ export function AddTransactionDialog({
   const [categoryId, setCategoryId] = useState("");
   const [amount, setAmount] = useState("");
   const [tags, setTags] = useState("");
-
-  const today = new Date().toISOString().split("T")[0];
+  const [date, setDate] = useState<Date | undefined>(new Date());
 
   const expenseCategories = categories.filter((c) => !c.isSavings);
   const savingsCategories = categories.filter((c) => c.isSavings);
@@ -58,6 +58,7 @@ export function AddTransactionDialog({
         setCategoryId("");
         setAmount("");
         setTags("");
+        setDate(new Date());
       }
       return result;
     },
@@ -162,16 +163,13 @@ export function AddTransactionDialog({
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="date" className="text-sm font-medium">
-              Date
-            </label>
-            <Input
-              id="date"
+            <label className="text-sm font-medium">Date</label>
+            <input
+              type="hidden"
               name="date"
-              type="date"
-              defaultValue={today}
-              required
+              value={date ? date.toISOString().split("T")[0] : ""}
             />
+            <DatePicker value={date} onChange={setDate} placeholder="Pick a date" />
           </div>
 
           {state?.error && (
