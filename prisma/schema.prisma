@@ -41,8 +41,8 @@ model Transaction {
   type       TransactionType
   note       String?
   date       DateTime        @default(now())
-  category   BudgetCategory  @relation(fields: [categoryId], references: [id])
-  categoryId String
+  category   BudgetCategory? @relation(fields: [categoryId], references: [id])
+  categoryId String?
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
 }
