@@ -6,21 +6,28 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { redirect } from "next/navigation";
-import { getTransactions, getOrCreateUserConfig } from "@/lib/actions";
+import { getTransactions, getOrCreateUserConfig, getTags, getRecurringTransactions } from "@/lib/actions";
+import { fetchExchangeRates, type CurrencyCode } from "@/lib/currency";
 import { AddTransactionDialog } from "@/components/add-transaction-dialog";
-import { TransactionTable } from "@/components/transaction-table";
+import { TransactionFilters } from "@/components/transaction-filters";
+import { RecurringTransactions } from "@/components/recurring-transactions";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
 export default async function TransactionsPage() {
-  const [transactions, config] = await Promise.all([
+  const [transactions, config, rateData, tags, recurringRules] = await Promise.all([
     getTransactions(),
     getOrCreateUserConfig(),
+    fetchExchangeRates(),
+    getTags(),
+    getRecurringTransactions(),
   ]);
 
   if (!config) redirect("/setup");
 
   const categories = config.activePlan.categories;
+  const currency = (config.currency ?? "THB") as CurrencyCode;
 
   return (
     <div className="space-y-6">
@@ -33,8 +40,20 @@ export default async function TransactionsPage() {
             Track your daily income and spending.
           </p>
         </div>
-        <AddTransactionDialog categories={categories} />
+        <div className="flex items-center gap-2">
+          <a href="/api/export-csv" download>
+            <Button variant="outline">Export CSV</Button>
+          </a>
+          <AddTransactionDialog categories={categories} />
+        </div>
       </div>
+
+      <RecurringTransactions
+        rules={recurringRules}
+        categories={categories}
+        currency={currency}
+        rates={rateData.rates}
+      />
 
       <Card>
         <CardHeader>
@@ -42,7 +61,13 @@ export default async function TransactionsPage() {
           <CardDescription>Your latest income and expenses.</CardDescription>
         </CardHeader>
         <CardContent>
-          <TransactionTable transactions={transactions} />
+          <TransactionFilters
+            transactions={transactions}
+            categories={categories}
+            tags={tags}
+            currency={currency}
+            rates={rateData.rates}
+          />
         </CardContent>
       </Card>
     </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Nav } from "@/components/nav";
+import { getOrCreateUserConfig } from "@/lib/actions";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -22,17 +23,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const config = await getOrCreateUserConfig();
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Nav />
+        <Nav currency={config?.currency ?? "THB"} />
         <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>
       </body>
     </html>
