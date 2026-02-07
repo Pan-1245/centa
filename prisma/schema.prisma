@@ -7,11 +7,66 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id                    String                 @id @default(cuid())
+  name                  String?
+  email                 String                 @unique
+  emailVerified         DateTime?
+  image                 String?
+  password              String?
+  accounts              Account[]
+  sessions              Session[]
+  userConfig            UserConfig?
+  transactions          Transaction[]
+  tags                  Tag[]
+  savingsGoals          SavingsGoal[]
+  recurringTransactions RecurringTransaction[]
+  budgetPlans           BudgetPlan[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
 model BudgetPlan {
   id         String           @id @default(cuid())
   name       String
   isDefault  Boolean          @default(false)
   isCustom   Boolean          @default(false)
+  userId     String?
+  user       User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
   categories BudgetCategory[]
   userConfig UserConfig[]
   createdAt  DateTime         @default(now())
@@ -32,6 +87,8 @@ model BudgetCategory {
 
 model UserConfig {
   id           String     @id @default(cuid())
+  userId       String     @unique
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   activePlan   BudgetPlan @relation(fields: [activePlanId], references: [id])
   activePlanId String
   currency     String     @default("THB")
@@ -45,6 +102,8 @@ model Transaction {
   type              TransactionType
   note              String?
   date              DateTime         @default(now())
+  userId            String
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   category          BudgetCategory?  @relation(fields: [categoryId], references: [id])
   categoryId        String?
   recurringId       String?
@@ -58,9 +117,13 @@ model Transaction {
 
 model Tag {
   id           String           @id @default(cuid())
-  name         String           @unique
+  name         String
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions TransactionTag[]
   createdAt    DateTime         @default(now())
+
+  @@unique([name, userId])
 }
 
 model TransactionTag {
@@ -77,6 +140,8 @@ model SavingsGoal {
   name         String
   targetAmount Float
   deadline     DateTime?
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   categoryId   String?
   category     BudgetCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   createdAt    DateTime        @default(now())
@@ -90,6 +155,8 @@ model RecurringTransaction {
   note       String?
   dayOfMonth Int
   isActive   Boolean         @default(true)
+  userId     String
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   categoryId String?
   category   BudgetCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   createdAt  DateTime        @default(now())

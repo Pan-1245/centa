@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+const TEST_USER = vi.hoisted(() => ({
+  id: "test-user-id",
+  name: "Test User",
+  email: "test@test.com",
+}));
+
 const mockPrisma = vi.hoisted(() => ({
   transaction: {
     findMany: vi.fn(),
@@ -7,6 +13,9 @@ const mockPrisma = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
+vi.mock("@/lib/auth", () => ({
+  auth: vi.fn().mockResolvedValue({ user: TEST_USER }),
+}));
 
 import { GET } from "@/app/api/export-csv/route";
 
@@ -102,5 +111,26 @@ describe("GET /api/export-csv", () => {
     const text = await response.text();
 
     expect(text).toBe("Date,Type,Category,Amount,Note");
+  });
+
+  it("filters transactions by userId", async () => {
+    mockPrisma.transaction.findMany.mockResolvedValue([]);
+
+    await GET();
+
+    expect(mockPrisma.transaction.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: TEST_USER.id },
+      }),
+    );
+  });
+
+  it("returns 401 when not authenticated", async () => {
+    const { auth } = await import("@/lib/auth");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(auth).mockResolvedValueOnce(null as any);
+
+    const response = await GET();
+    expect(response.status).toBe(401);
   });
 });

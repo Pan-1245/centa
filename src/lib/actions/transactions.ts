@@ -1,18 +1,25 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth-utils";
 import { revalidatePath } from "next/cache";
 import { TransactionType, PaymentMethod } from "@/generated/prisma/enums";
 
 export async function getTransactions() {
+  const user = await requireAuth();
   return prisma.transaction.findMany({
+    where: { userId: user.id },
     include: { category: true, tags: { include: { tag: true } } },
     orderBy: [{ date: "desc" }, { createdAt: "desc" }],
   });
 }
 
 export async function getTags() {
-  return prisma.tag.findMany({ orderBy: { name: "asc" } });
+  const user = await requireAuth();
+  return prisma.tag.findMany({
+    where: { userId: user.id },
+    orderBy: { name: "asc" },
+  });
 }
 
 export type MonthTransaction = {
@@ -38,7 +45,9 @@ export type YearSummary = {
 };
 
 export async function getMonthlySummary(): Promise<YearSummary[]> {
+  const user = await requireAuth();
   const transactions = await prisma.transaction.findMany({
+    where: { userId: user.id },
     include: { category: true },
     orderBy: { date: "asc" },
   });
@@ -114,6 +123,7 @@ export async function getMonthlySummary(): Promise<YearSummary[]> {
 }
 
 export async function createTransaction(formData: FormData) {
+  const user = await requireAuth();
   const amount = formData.get("amount") as string;
   const type = formData.get("type") as string;
   const categoryId = formData.get("categoryId") as string;
@@ -152,6 +162,16 @@ export async function createTransaction(formData: FormData) {
       ? paymentMethodNoteRaw.trim()
       : null;
 
+  // Verify categoryId belongs to user's plan
+  if (categoryId) {
+    const category = await prisma.budgetCategory.findFirst({
+      where: { id: categoryId, plan: { userId: user.id } },
+    });
+    if (!category) {
+      return { success: false, error: "Category not found." };
+    }
+  }
+
   try {
     let createdTx;
     if (type === "INCOME") {
@@ -161,6 +181,7 @@ export async function createTransaction(formData: FormData) {
           type: TransactionType.INCOME,
           note: note || null,
           date: new Date(date),
+          userId: user.id,
           paymentMethod,
           paymentMethodNote,
         },
@@ -173,9 +194,10 @@ export async function createTransaction(formData: FormData) {
             type === "SAVINGS"
               ? TransactionType.SAVINGS
               : TransactionType.EXPENSE,
-          category: { connect: { id: categoryId } },
+          categoryId,
           note: note || null,
           date: new Date(date),
+          userId: user.id,
           paymentMethod,
           paymentMethodNote,
         },
@@ -189,9 +211,9 @@ export async function createTransaction(formData: FormData) {
         .filter(Boolean);
       for (const tagName of tagNames) {
         const tag = await prisma.tag.upsert({
-          where: { name: tagName },
+          where: { name_userId: { name: tagName, userId: user.id } },
           update: {},
-          create: { name: tagName },
+          create: { name: tagName, userId: user.id },
         });
         await prisma.transactionTag.create({
           data: { transactionId: createdTx.id, tagId: tag.id },
@@ -208,13 +230,14 @@ export async function createTransaction(formData: FormData) {
 }
 
 export async function deleteTransaction(formData: FormData) {
+  const user = await requireAuth();
   const id = formData.get("id") as string;
   if (!id) {
     return { success: false, error: "Transaction ID is required." };
   }
 
   try {
-    await prisma.transaction.delete({ where: { id } });
+    await prisma.transaction.delete({ where: { id, userId: user.id } });
     revalidatePath("/");
     revalidatePath("/transactions");
     return { success: true };

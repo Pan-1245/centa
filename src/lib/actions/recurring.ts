@@ -1,17 +1,21 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth-utils";
 import { revalidatePath } from "next/cache";
 import { TransactionType } from "@/generated/prisma/enums";
 
 export async function getRecurringTransactions() {
+  const user = await requireAuth();
   return prisma.recurringTransaction.findMany({
+    where: { userId: user.id },
     include: { category: true },
     orderBy: { dayOfMonth: "asc" },
   });
 }
 
 export async function createRecurringTransaction(formData: FormData) {
+  const user = await requireAuth();
   const amount = parseFloat(formData.get("amount") as string);
   const type = formData.get("type") as string;
   const categoryId = formData.get("categoryId") as string;
@@ -27,6 +31,15 @@ export async function createRecurringTransaction(formData: FormData) {
   if (isNaN(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 28)
     return { success: false, error: "Day must be 1-28." };
 
+  if (categoryId) {
+    const category = await prisma.budgetCategory.findFirst({
+      where: { id: categoryId, plan: { userId: user.id } },
+    });
+    if (!category) {
+      return { success: false, error: "Category not found." };
+    }
+  }
+
   try {
     await prisma.recurringTransaction.create({
       data: {
@@ -34,6 +47,7 @@ export async function createRecurringTransaction(formData: FormData) {
         type: type as TransactionType,
         note: note || null,
         dayOfMonth,
+        userId: user.id,
         categoryId: categoryId || null,
       },
     });
@@ -46,11 +60,14 @@ export async function createRecurringTransaction(formData: FormData) {
 }
 
 export async function deleteRecurringTransaction(formData: FormData) {
+  const user = await requireAuth();
   const id = formData.get("id") as string;
   if (!id) return { success: false, error: "ID is required." };
 
   try {
-    await prisma.recurringTransaction.delete({ where: { id } });
+    await prisma.recurringTransaction.delete({
+      where: { id, userId: user.id },
+    });
     revalidatePath("/");
     revalidatePath("/transactions");
     return { success: true };
@@ -60,12 +77,13 @@ export async function deleteRecurringTransaction(formData: FormData) {
 }
 
 export async function toggleRecurringTransaction(formData: FormData) {
+  const user = await requireAuth();
   const id = formData.get("id") as string;
   if (!id) return { success: false, error: "ID is required." };
 
   try {
-    const rule = await prisma.recurringTransaction.findUnique({
-      where: { id },
+    const rule = await prisma.recurringTransaction.findFirst({
+      where: { id, userId: user.id },
     });
     if (!rule) return { success: false, error: "Not found." };
 
@@ -82,12 +100,13 @@ export async function toggleRecurringTransaction(formData: FormData) {
 }
 
 export async function processRecurringTransactions() {
+  const user = await requireAuth();
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
 
   const activeRules = await prisma.recurringTransaction.findMany({
-    where: { isActive: true },
+    where: { userId: user.id, isActive: true },
   });
 
   const startOfMonth = new Date(year, month, 1);
@@ -96,6 +115,7 @@ export async function processRecurringTransactions() {
   for (const rule of activeRules) {
     const existing = await prisma.transaction.findFirst({
       where: {
+        userId: user.id,
         recurringId: rule.id,
         date: { gte: startOfMonth, lte: endOfMonth },
       },
@@ -111,6 +131,7 @@ export async function processRecurringTransactions() {
           type: rule.type,
           note: rule.note,
           date: txDate,
+          userId: user.id,
           categoryId: rule.categoryId,
           recurringId: rule.id,
           isRecurring: true,

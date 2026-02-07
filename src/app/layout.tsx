@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Nav } from "@/components/nav";
+import { auth } from "@/lib/auth";
 import { getOrCreateUserConfig } from "@/lib/actions/config";
 import "./globals.css";
 
@@ -43,14 +44,18 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const config = await getOrCreateUserConfig();
+  const session = await auth();
+  const config = session ? await getOrCreateUserConfig() : null;
 
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Nav currency={config?.currency ?? "THB"} />
+        <Nav
+          currency={config?.currency ?? "THB"}
+          userName={session?.user?.name}
+        />
         <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
           {children}
         </main>

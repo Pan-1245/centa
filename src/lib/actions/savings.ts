@@ -1,11 +1,14 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth-utils";
 import { revalidatePath } from "next/cache";
 import { TransactionType } from "@/generated/prisma/enums";
 
 export async function getSavingsGoals() {
+  const user = await requireAuth();
   const goals = await prisma.savingsGoal.findMany({
+    where: { userId: user.id },
     include: { category: true },
     orderBy: { createdAt: "asc" },
   });
@@ -15,7 +18,11 @@ export async function getSavingsGoals() {
       let currentAmount = 0;
       if (goal.categoryId) {
         const agg = await prisma.transaction.aggregate({
-          where: { categoryId: goal.categoryId, type: TransactionType.SAVINGS },
+          where: {
+            userId: user.id,
+            categoryId: goal.categoryId,
+            type: TransactionType.SAVINGS,
+          },
           _sum: { amount: true },
         });
         currentAmount = agg._sum.amount ?? 0;
@@ -28,6 +35,7 @@ export async function getSavingsGoals() {
 }
 
 export async function createSavingsGoal(formData: FormData) {
+  const user = await requireAuth();
   const name = formData.get("name") as string;
   const targetAmount = parseFloat(formData.get("targetAmount") as string);
   const categoryId = formData.get("categoryId") as string;
@@ -37,11 +45,21 @@ export async function createSavingsGoal(formData: FormData) {
   if (isNaN(targetAmount) || targetAmount <= 0)
     return { success: false, error: "Target must be a positive number." };
 
+  if (categoryId) {
+    const category = await prisma.budgetCategory.findFirst({
+      where: { id: categoryId, plan: { userId: user.id } },
+    });
+    if (!category) {
+      return { success: false, error: "Category not found." };
+    }
+  }
+
   try {
     await prisma.savingsGoal.create({
       data: {
         name,
         targetAmount,
+        userId: user.id,
         categoryId: categoryId || null,
         deadline: deadline ? new Date(deadline) : null,
       },
@@ -54,11 +72,12 @@ export async function createSavingsGoal(formData: FormData) {
 }
 
 export async function deleteSavingsGoal(formData: FormData) {
+  const user = await requireAuth();
   const id = formData.get("id") as string;
   if (!id) return { success: false, error: "Goal ID is required." };
 
   try {
-    await prisma.savingsGoal.delete({ where: { id } });
+    await prisma.savingsGoal.delete({ where: { id, userId: user.id } });
     revalidatePath("/");
     return { success: true };
   } catch {

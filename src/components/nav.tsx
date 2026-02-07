@@ -6,7 +6,8 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { updateCurrency } from "@/lib/actions/config";
 import type { CurrencyCode } from "@/lib/currency";
-import { Menu, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
+import { signOut } from "next-auth/react";
 
 const navLinks = [
   { href: "/", label: "Dashboard" },
@@ -21,11 +22,22 @@ const currencies: { code: CurrencyCode; label: string }[] = [
   { code: "JPY", label: "¥ JPY" },
 ];
 
-export function Nav({ currency = "THB" }: { currency?: string }) {
+export function Nav({
+  currency = "THB",
+  userName,
+}: {
+  currency?: string;
+  userName?: string | null;
+}) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  if (pathname === "/setup") return null;
+  if (
+    pathname === "/setup" ||
+    pathname === "/login" ||
+    pathname === "/register"
+  )
+    return null;
 
   return (
     <nav className="bg-card border-b">
@@ -80,6 +92,15 @@ export function Nav({ currency = "THB" }: { currency?: string }) {
             ))}
           </div>
 
+          {/* Sign out - desktop */}
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground hidden rounded-md p-2 sm:flex sm:items-center sm:gap-1.5"
+            title={userName ? `Signed in as ${userName}` : "Sign out"}
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -114,6 +135,13 @@ export function Nav({ currency = "THB" }: { currency?: string }) {
                 {link.label}
               </Link>
             ))}
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="text-muted-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
           </div>
         </div>
       )}

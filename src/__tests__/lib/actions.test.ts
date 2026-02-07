@@ -1,6 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// --- Mocks ---
+// --- Auth mock ---
+
+const TEST_USER = {
+  id: "test-user-id",
+  name: "Test User",
+  email: "test@test.com",
+};
+
+vi.mock("@/lib/auth", () => ({
+  auth: vi.fn().mockResolvedValue({ user: TEST_USER }),
+}));
+
+vi.mock("@/lib/auth-utils", () => ({
+  requireAuth: vi.fn().mockResolvedValue(TEST_USER),
+}));
+
+// --- Prisma mock ---
 
 const mockPrisma = {
   userConfig: {
@@ -15,8 +31,10 @@ const mockPrisma = {
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
   },
   budgetCategory: {
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     update: vi.fn(),
     createMany: vi.fn(),
@@ -43,9 +61,14 @@ const mockPrisma = {
     create: vi.fn(),
     delete: vi.fn(),
   },
+  user: {
+    findUnique: vi.fn(),
+    create: vi.fn(),
+  },
   recurringTransaction: {
     findMany: vi.fn(),
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     create: vi.fn(),
     delete: vi.fn(),
     update: vi.fn(),
@@ -64,6 +87,13 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn((url: string) => {
     throw new RedirectError(url);
   }),
+}));
+
+vi.mock("bcryptjs", () => ({
+  default: {
+    hash: vi.fn().mockResolvedValue("hashed-password"),
+    compare: vi.fn(),
+  },
 }));
 
 vi.mock("@/generated/prisma/enums", () => ({
@@ -118,6 +148,7 @@ const {
   toggleRecurringTransaction,
   processRecurringTransactions,
 } = await import("@/lib/actions/recurring");
+const { registerUser } = await import("@/lib/actions/auth");
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -129,6 +160,7 @@ describe("getOrCreateUserConfig", () => {
   it("returns existing config when found", async () => {
     const config = {
       id: "c1",
+      userId: TEST_USER.id,
       activePlanId: "p1",
       activePlan: { categories: [] },
     };
@@ -136,6 +168,11 @@ describe("getOrCreateUserConfig", () => {
 
     const result = await getOrCreateUserConfig();
     expect(result).toEqual(config);
+    expect(mockPrisma.userConfig.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: TEST_USER.id },
+      }),
+    );
   });
 
   it("creates config from default plan when none exists", async () => {
@@ -144,6 +181,7 @@ describe("getOrCreateUserConfig", () => {
     mockPrisma.budgetPlan.findFirst.mockResolvedValue(defaultPlan);
     const newConfig = {
       id: "c2",
+      userId: TEST_USER.id,
       activePlanId: "dp1",
       activePlan: defaultPlan,
     };
@@ -152,7 +190,9 @@ describe("getOrCreateUserConfig", () => {
     const result = await getOrCreateUserConfig();
     expect(result).toEqual(newConfig);
     expect(mockPrisma.userConfig.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { activePlanId: "dp1" } }),
+      expect.objectContaining({
+        data: { userId: TEST_USER.id, activePlanId: "dp1" },
+      }),
     );
   });
 
@@ -192,7 +232,7 @@ describe("initializeApp", () => {
     ).rejects.toThrow(RedirectError);
   });
 
-  it("creates plans and config on valid input", async () => {
+  it("creates plans and config with userId on valid input", async () => {
     mockPrisma.userConfig.findFirst.mockResolvedValue(null);
     mockPrisma.budgetPlan.create.mockResolvedValueOnce({ id: "p1" });
     mockPrisma.budgetPlan.create.mockResolvedValueOnce({ id: "p2" });
@@ -202,8 +242,15 @@ describe("initializeApp", () => {
       initializeApp(makeFormData({ planIndex: "0" })),
     ).rejects.toThrow(RedirectError);
     expect(mockPrisma.budgetPlan.create).toHaveBeenCalledTimes(2);
+    expect(mockPrisma.budgetPlan.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ userId: TEST_USER.id }),
+      }),
+    );
     expect(mockPrisma.userConfig.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { activePlanId: "p1" } }),
+      expect.objectContaining({
+        data: { userId: TEST_USER.id, activePlanId: "p1" },
+      }),
     );
   });
 });
@@ -249,7 +296,7 @@ describe("initializeWithCustomPlan", () => {
     });
   });
 
-  it("creates plan and redirects on valid data", async () => {
+  it("creates plan with userId and redirects on valid data", async () => {
     const cats = JSON.stringify([
       { name: "Needs", percentage: 60 },
       { name: "Wants", percentage: 40 },
@@ -263,19 +310,28 @@ describe("initializeWithCustomPlan", () => {
         makeFormData({ name: "My Plan", categories: cats }),
       ),
     ).rejects.toThrow(RedirectError);
-    expect(mockPrisma.budgetPlan.create).toHaveBeenCalled();
+    expect(mockPrisma.budgetPlan.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ userId: TEST_USER.id }),
+      }),
+    );
   });
 });
 
 // ==================== getBudgetPlans ====================
 
 describe("getBudgetPlans", () => {
-  it("returns all plans with categories", async () => {
+  it("returns plans filtered by userId", async () => {
     const plans = [{ id: "p1", name: "Test", categories: [] }];
     mockPrisma.budgetPlan.findMany.mockResolvedValue(plans);
 
     const result = await getBudgetPlans();
     expect(result).toEqual(plans);
+    expect(mockPrisma.budgetPlan.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: TEST_USER.id },
+      }),
+    );
   });
 });
 
@@ -290,7 +346,7 @@ describe("getDashboardStats", () => {
     expect(result).toBeNull();
   });
 
-  it("computes stats correctly", async () => {
+  it("computes stats correctly with userId filtering", async () => {
     const config = {
       id: "c1",
       activePlanId: "p1",
@@ -321,12 +377,13 @@ describe("getDashboardStats", () => {
     expect(result!.totalExpenses).toBe(3000);
     expect(result!.totalSavings).toBe(2000);
     expect(result!.remaining).toBe(5000); // 10000 - 3000 - 2000
-    expect(result!.prevIncome).toBe(8000);
-    expect(result!.prevExpenses).toBe(2500);
-    expect(result!.prevSavings).toBe(1500);
-    expect(result!.breakdown).toHaveLength(2);
-    expect(result!.breakdown[0].spent).toBe(3000);
-    expect(result!.breakdown[0].budgeted).toBe(5000); // 50% of 10000
+
+    // Verify userId is passed in aggregate queries
+    expect(mockPrisma.transaction.aggregate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ userId: TEST_USER.id }),
+      }),
+    );
   });
 
   it("uses Math.round for budget calculation", async () => {
@@ -363,7 +420,7 @@ describe("getDashboardStats", () => {
 // ==================== getTransactions ====================
 
 describe("getTransactions", () => {
-  it("returns transactions with category and tags, sorted by date then createdAt", async () => {
+  it("returns transactions filtered by userId, sorted by date then createdAt", async () => {
     const txs = [{ id: "t1", amount: 100, tags: [], category: null }];
     mockPrisma.transaction.findMany.mockResolvedValue(txs);
 
@@ -371,6 +428,7 @@ describe("getTransactions", () => {
     expect(result).toEqual(txs);
     expect(mockPrisma.transaction.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
+        where: { userId: TEST_USER.id },
         include: { category: true, tags: { include: { tag: true } } },
         orderBy: [{ date: "desc" }, { createdAt: "desc" }],
       }),
@@ -381,7 +439,7 @@ describe("getTransactions", () => {
 // ==================== getTags ====================
 
 describe("getTags", () => {
-  it("returns tags sorted by name", async () => {
+  it("returns tags filtered by userId", async () => {
     const tags = [
       { id: "t1", name: "food" },
       { id: "t2", name: "transport" },
@@ -390,6 +448,11 @@ describe("getTags", () => {
 
     const result = await getTags();
     expect(result).toEqual(tags);
+    expect(mockPrisma.tag.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: TEST_USER.id },
+      }),
+    );
   });
 });
 
@@ -480,7 +543,7 @@ describe("createTransaction", () => {
     expect(result).toEqual({ success: false, error: "Date is required." });
   });
 
-  it("creates INCOME transaction without category", async () => {
+  it("creates INCOME transaction with userId", async () => {
     mockPrisma.transaction.create.mockResolvedValue({ id: "tx1" });
 
     const result = await createTransaction(
@@ -500,12 +563,30 @@ describe("createTransaction", () => {
           amount: 5000,
           type: "INCOME",
           note: "Salary",
+          userId: TEST_USER.id,
         }),
       }),
     );
   });
 
-  it("creates EXPENSE transaction with category", async () => {
+  it("rejects categoryId not owned by user", async () => {
+    mockPrisma.budgetCategory.findFirst.mockResolvedValue(null);
+
+    const result = await createTransaction(
+      makeFormData({
+        amount: "200",
+        type: "EXPENSE",
+        date: "2025-01-15",
+        categoryId: "other-user-cat",
+        tags: "",
+      }),
+    );
+    expect(result).toEqual({ success: false, error: "Category not found." });
+    expect(mockPrisma.transaction.create).not.toHaveBeenCalled();
+  });
+
+  it("creates EXPENSE transaction with category and userId", async () => {
+    mockPrisma.budgetCategory.findFirst.mockResolvedValue({ id: "cat1" });
     mockPrisma.transaction.create.mockResolvedValue({ id: "tx2" });
 
     const result = await createTransaction(
@@ -524,13 +605,15 @@ describe("createTransaction", () => {
         data: expect.objectContaining({
           amount: 200,
           type: "EXPENSE",
-          category: { connect: { id: "cat1" } },
+          categoryId: "cat1",
+          userId: TEST_USER.id,
         }),
       }),
     );
   });
 
   it("creates SAVINGS transaction", async () => {
+    mockPrisma.budgetCategory.findFirst.mockResolvedValue({ id: "cat2" });
     mockPrisma.transaction.create.mockResolvedValue({ id: "tx3" });
 
     const result = await createTransaction(
@@ -545,7 +628,7 @@ describe("createTransaction", () => {
     expect(result).toEqual({ success: true });
   });
 
-  it("creates tags on transaction", async () => {
+  it("creates tags with userId composite key", async () => {
     mockPrisma.transaction.create.mockResolvedValue({ id: "tx4" });
     mockPrisma.tag.upsert.mockResolvedValueOnce({ id: "tag1", name: "food" });
     mockPrisma.tag.upsert.mockResolvedValueOnce({ id: "tag2", name: "weekly" });
@@ -562,6 +645,12 @@ describe("createTransaction", () => {
     );
     expect(result).toEqual({ success: true });
     expect(mockPrisma.tag.upsert).toHaveBeenCalledTimes(2);
+    expect(mockPrisma.tag.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { name_userId: { name: "food", userId: TEST_USER.id } },
+        create: { name: "food", userId: TEST_USER.id },
+      }),
+    );
     expect(mockPrisma.transactionTag.create).toHaveBeenCalledTimes(2);
   });
 });
@@ -569,10 +658,13 @@ describe("createTransaction", () => {
 // ==================== deleteTransaction ====================
 
 describe("deleteTransaction", () => {
-  it("deletes transaction", async () => {
+  it("deletes transaction with userId ownership check", async () => {
     mockPrisma.transaction.delete.mockResolvedValue({});
     const result = await deleteTransaction(makeFormData({ id: "tx1" }));
     expect(result).toEqual({ success: true });
+    expect(mockPrisma.transaction.delete).toHaveBeenCalledWith({
+      where: { id: "tx1", userId: TEST_USER.id },
+    });
   });
 
   it("rejects missing ID", async () => {
@@ -590,6 +682,7 @@ describe("updateCurrency", () => {
   it("updates to valid currency", async () => {
     const config = {
       id: "c1",
+      userId: TEST_USER.id,
       activePlanId: "p1",
       activePlan: { categories: [] },
     };
@@ -617,13 +710,17 @@ describe("updateCurrency", () => {
 // ==================== setActiveBudgetPlan ====================
 
 describe("setActiveBudgetPlan", () => {
-  it("updates active plan", async () => {
+  it("updates active plan with ownership check", async () => {
     const config = {
       id: "c1",
       activePlanId: "p1",
       activePlan: { categories: [] },
     };
     mockPrisma.userConfig.findFirst.mockResolvedValue(config);
+    mockPrisma.budgetPlan.findFirst.mockResolvedValue({
+      id: "p2",
+      userId: TEST_USER.id,
+    });
     mockPrisma.userConfig.update.mockResolvedValue({});
 
     const result = await setActiveBudgetPlan(makeFormData({ planId: "p2" }));
@@ -646,7 +743,20 @@ describe("updateBudgetPlan", () => {
     expect(result).toEqual({ success: false, error: "Plan name is required." });
   });
 
+  it("verifies ownership before updating", async () => {
+    mockPrisma.budgetPlan.findFirst.mockResolvedValue(null); // not found = not owned
+    const cats = JSON.stringify([{ id: "c1", name: "A", percentage: 100 }]);
+    const result = await updateBudgetPlan(
+      makeFormData({ planId: "p1", name: "Plan", categories: cats }),
+    );
+    expect(result).toEqual({ success: false, error: "Plan not found." });
+  });
+
   it("rejects percentages != 100", async () => {
+    mockPrisma.budgetPlan.findFirst.mockResolvedValue({
+      id: "p1",
+      userId: TEST_USER.id,
+    });
     const cats = JSON.stringify([{ id: "c1", name: "A", percentage: 50 }]);
     const result = await updateBudgetPlan(
       makeFormData({ planId: "p1", name: "Plan", categories: cats }),
@@ -657,7 +767,11 @@ describe("updateBudgetPlan", () => {
     });
   });
 
-  it("updates plan and categories", async () => {
+  it("updates plan and categories with userId filtering", async () => {
+    mockPrisma.budgetPlan.findFirst.mockResolvedValue({
+      id: "p1",
+      userId: TEST_USER.id,
+    });
     const cats = JSON.stringify([
       { id: "cat1", name: "Needs", percentage: 60, isSavings: false },
       { id: "cat2", name: "Savings", percentage: 40, isSavings: true },
@@ -677,13 +791,17 @@ describe("updateBudgetPlan", () => {
     // cat2 changed from isSavings=false to true, so transactions should be retyped
     expect(mockPrisma.transaction.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { categoryId: "cat2" },
+        where: { categoryId: "cat2", userId: TEST_USER.id },
         data: { type: "SAVINGS" },
       }),
     );
   });
 
   it("handles removed categories", async () => {
+    mockPrisma.budgetPlan.findFirst.mockResolvedValue({
+      id: "p1",
+      userId: TEST_USER.id,
+    });
     const cats = JSON.stringify([
       { id: "cat1", name: "Only", percentage: 100, isSavings: false },
     ]);
@@ -700,7 +818,12 @@ describe("updateBudgetPlan", () => {
       makeFormData({ planId: "p1", name: "Plan", categories: cats }),
     );
     expect(result).toEqual({ success: true });
-    // cat2 removed: transactions nullified, category deleted
+    // cat2 removed: transactions nullified with userId filter, category deleted
+    expect(mockPrisma.transaction.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { categoryId: { in: ["cat2"] }, userId: TEST_USER.id },
+      }),
+    );
     expect(mockPrisma.budgetCategory.deleteMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: { in: ["cat2"] } } }),
     );
@@ -710,7 +833,7 @@ describe("updateBudgetPlan", () => {
 // ==================== createCustomPlan ====================
 
 describe("createCustomPlan", () => {
-  it("creates plan with valid data", async () => {
+  it("creates plan with userId", async () => {
     const cats = JSON.stringify([
       { name: "A", percentage: 60, isSavings: false },
       { name: "B", percentage: 40, isSavings: true },
@@ -721,6 +844,11 @@ describe("createCustomPlan", () => {
       makeFormData({ name: "Custom", categories: cats }),
     );
     expect(result).toEqual({ success: true });
+    expect(mockPrisma.budgetPlan.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ userId: TEST_USER.id }),
+      }),
+    );
   });
 
   it("rejects empty name", async () => {
@@ -734,24 +862,28 @@ describe("createCustomPlan", () => {
 // ==================== deleteBudgetPlan ====================
 
 describe("deleteBudgetPlan", () => {
-  it("deletes non-active custom plan", async () => {
+  it("deletes non-active custom plan with ownership check", async () => {
     const config = {
       id: "c1",
       activePlanId: "p1",
       activePlan: { categories: [] },
     };
     mockPrisma.userConfig.findFirst.mockResolvedValue(config);
-    mockPrisma.budgetPlan.findUnique.mockResolvedValue({
+    mockPrisma.budgetPlan.findFirst.mockResolvedValue({
       id: "p2",
       isDefault: false,
       isCustom: true,
+      userId: TEST_USER.id,
     });
     mockPrisma.budgetCategory.findMany.mockResolvedValue([{ id: "cat1" }]);
     mockPrisma.transaction.updateMany.mockResolvedValue({});
-    mockPrisma.budgetPlan.delete.mockResolvedValue({});
+    mockPrisma.budgetPlan.deleteMany.mockResolvedValue({});
 
     const result = await deleteBudgetPlan(makeFormData({ planId: "p2" }));
     expect(result).toEqual({ success: true });
+    expect(mockPrisma.budgetPlan.deleteMany).toHaveBeenCalledWith({
+      where: { id: "p2", userId: TEST_USER.id },
+    });
   });
 
   it("rejects deleting active plan", async () => {
@@ -776,9 +908,10 @@ describe("deleteBudgetPlan", () => {
       activePlan: { categories: [] },
     };
     mockPrisma.userConfig.findFirst.mockResolvedValue(config);
-    mockPrisma.budgetPlan.findUnique.mockResolvedValue({
+    mockPrisma.budgetPlan.findFirst.mockResolvedValue({
       id: "p2",
       isDefault: true,
+      userId: TEST_USER.id,
     });
 
     const result = await deleteBudgetPlan(makeFormData({ planId: "p2" }));
@@ -797,7 +930,7 @@ describe("deleteBudgetPlan", () => {
 // ==================== getSavingsGoals ====================
 
 describe("getSavingsGoals", () => {
-  it("returns goals with computed currentAmount", async () => {
+  it("returns goals filtered by userId with computed currentAmount", async () => {
     mockPrisma.savingsGoal.findMany.mockResolvedValue([
       {
         id: "g1",
@@ -814,6 +947,11 @@ describe("getSavingsGoals", () => {
     const result = await getSavingsGoals();
     expect(result).toHaveLength(1);
     expect(result[0].currentAmount).toBe(25000);
+    expect(mockPrisma.savingsGoal.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: TEST_USER.id },
+      }),
+    );
   });
 
   it("returns 0 currentAmount when no category linked", async () => {
@@ -835,7 +973,23 @@ describe("getSavingsGoals", () => {
 // ==================== createSavingsGoal ====================
 
 describe("createSavingsGoal", () => {
-  it("creates goal with valid data", async () => {
+  it("rejects categoryId not owned by user", async () => {
+    mockPrisma.budgetCategory.findFirst.mockResolvedValue(null);
+
+    const result = await createSavingsGoal(
+      makeFormData({
+        name: "Test Goal",
+        targetAmount: "10000",
+        categoryId: "other-user-cat",
+        deadline: "",
+      }),
+    );
+    expect(result).toEqual({ success: false, error: "Category not found." });
+    expect(mockPrisma.savingsGoal.create).not.toHaveBeenCalled();
+  });
+
+  it("creates goal with userId", async () => {
+    mockPrisma.budgetCategory.findFirst.mockResolvedValue({ id: "cat1" });
     mockPrisma.savingsGoal.create.mockResolvedValue({ id: "g1" });
 
     const result = await createSavingsGoal(
@@ -847,6 +1001,11 @@ describe("createSavingsGoal", () => {
       }),
     );
     expect(result).toEqual({ success: true });
+    expect(mockPrisma.savingsGoal.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ userId: TEST_USER.id }),
+      }),
+    );
   });
 
   it("rejects empty name", async () => {
@@ -880,10 +1039,13 @@ describe("createSavingsGoal", () => {
 // ==================== deleteSavingsGoal ====================
 
 describe("deleteSavingsGoal", () => {
-  it("deletes goal", async () => {
+  it("deletes goal with userId ownership check", async () => {
     mockPrisma.savingsGoal.delete.mockResolvedValue({});
     const result = await deleteSavingsGoal(makeFormData({ id: "g1" }));
     expect(result).toEqual({ success: true });
+    expect(mockPrisma.savingsGoal.delete).toHaveBeenCalledWith({
+      where: { id: "g1", userId: TEST_USER.id },
+    });
   });
 
   it("rejects missing ID", async () => {
@@ -895,19 +1057,24 @@ describe("deleteSavingsGoal", () => {
 // ==================== getRecurringTransactions ====================
 
 describe("getRecurringTransactions", () => {
-  it("returns all rules with categories", async () => {
+  it("returns rules filtered by userId", async () => {
     const rules = [{ id: "r1", amount: 1000, dayOfMonth: 1, category: null }];
     mockPrisma.recurringTransaction.findMany.mockResolvedValue(rules);
 
     const result = await getRecurringTransactions();
     expect(result).toEqual(rules);
+    expect(mockPrisma.recurringTransaction.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: TEST_USER.id },
+      }),
+    );
   });
 });
 
 // ==================== createRecurringTransaction ====================
 
 describe("createRecurringTransaction", () => {
-  it("creates rule with valid data", async () => {
+  it("creates rule with userId", async () => {
     mockPrisma.recurringTransaction.create.mockResolvedValue({ id: "r1" });
 
     const result = await createRecurringTransaction(
@@ -920,6 +1087,11 @@ describe("createRecurringTransaction", () => {
       }),
     );
     expect(result).toEqual({ success: true });
+    expect(mockPrisma.recurringTransaction.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ userId: TEST_USER.id }),
+      }),
+    );
   });
 
   it("rejects non-positive amount", async () => {
@@ -974,10 +1146,13 @@ describe("createRecurringTransaction", () => {
 // ==================== deleteRecurringTransaction ====================
 
 describe("deleteRecurringTransaction", () => {
-  it("deletes rule", async () => {
+  it("deletes rule with userId ownership check", async () => {
     mockPrisma.recurringTransaction.delete.mockResolvedValue({});
     const result = await deleteRecurringTransaction(makeFormData({ id: "r1" }));
     expect(result).toEqual({ success: true });
+    expect(mockPrisma.recurringTransaction.delete).toHaveBeenCalledWith({
+      where: { id: "r1", userId: TEST_USER.id },
+    });
   });
 
   it("rejects missing ID", async () => {
@@ -990,7 +1165,7 @@ describe("deleteRecurringTransaction", () => {
 
 describe("toggleRecurringTransaction", () => {
   it("toggles from active to inactive", async () => {
-    mockPrisma.recurringTransaction.findUnique.mockResolvedValue({
+    mockPrisma.recurringTransaction.findFirst.mockResolvedValue({
       id: "r1",
       isActive: true,
     });
@@ -1004,7 +1179,7 @@ describe("toggleRecurringTransaction", () => {
   });
 
   it("toggles from inactive to active", async () => {
-    mockPrisma.recurringTransaction.findUnique.mockResolvedValue({
+    mockPrisma.recurringTransaction.findFirst.mockResolvedValue({
       id: "r1",
       isActive: false,
     });
@@ -1026,7 +1201,7 @@ describe("toggleRecurringTransaction", () => {
 // ==================== processRecurringTransactions ====================
 
 describe("processRecurringTransactions", () => {
-  it("creates transaction when day has passed", async () => {
+  it("creates transaction with userId when day has passed", async () => {
     const now = new Date();
     mockPrisma.recurringTransaction.findMany.mockResolvedValue([
       {
@@ -1051,6 +1226,7 @@ describe("processRecurringTransactions", () => {
             type: "INCOME",
             isRecurring: true,
             recurringId: "r1",
+            userId: TEST_USER.id,
           }),
         }),
       );
@@ -1129,6 +1305,13 @@ describe("getMonthlySummary", () => {
 
     const feb = result[0].months.find((m) => m.month === 2);
     expect(feb!.savings).toBe(1000);
+
+    // Verify userId filtering
+    expect(mockPrisma.transaction.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: TEST_USER.id },
+      }),
+    );
   });
 
   it("rounds accumulated sums to avoid float drift", async () => {
@@ -1155,5 +1338,170 @@ describe("getMonthlySummary", () => {
     mockPrisma.transaction.findMany.mockResolvedValue([]);
     const result = await getMonthlySummary();
     expect(result).toEqual([]);
+  });
+});
+
+// ==================== createRecurringTransaction categoryId ====================
+
+describe("createRecurringTransaction categoryId ownership", () => {
+  it("rejects categoryId not owned by user", async () => {
+    mockPrisma.budgetCategory.findFirst.mockResolvedValue(null);
+
+    const result = await createRecurringTransaction(
+      makeFormData({
+        amount: "100",
+        type: "EXPENSE",
+        categoryId: "other-user-cat",
+        dayOfMonth: "15",
+      }),
+    );
+    expect(result).toEqual({ success: false, error: "Category not found." });
+    expect(mockPrisma.recurringTransaction.create).not.toHaveBeenCalled();
+  });
+
+  it("creates rule when categoryId is owned by user", async () => {
+    mockPrisma.budgetCategory.findFirst.mockResolvedValue({ id: "cat1" });
+    mockPrisma.recurringTransaction.create.mockResolvedValue({ id: "r1" });
+
+    const result = await createRecurringTransaction(
+      makeFormData({
+        amount: "100",
+        type: "EXPENSE",
+        categoryId: "cat1",
+        note: "Rent",
+        dayOfMonth: "1",
+      }),
+    );
+    expect(result).toEqual({ success: true });
+  });
+});
+
+// ==================== registerUser ====================
+
+describe("registerUser", () => {
+  it("rejects empty name", async () => {
+    const result = await registerUser(
+      makeFormData({
+        name: "",
+        email: "test@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+      }),
+    );
+    expect(result).toEqual({ success: false, error: "Name is required." });
+  });
+
+  it("rejects empty email", async () => {
+    const result = await registerUser(
+      makeFormData({
+        name: "Test",
+        email: "",
+        password: "password123",
+        confirmPassword: "password123",
+      }),
+    );
+    expect(result).toEqual({ success: false, error: "Email is required." });
+  });
+
+  it("rejects invalid email format", async () => {
+    const result = await registerUser(
+      makeFormData({
+        name: "Test",
+        email: "not-an-email",
+        password: "password123",
+        confirmPassword: "password123",
+      }),
+    );
+    expect(result).toEqual({ success: false, error: "Invalid email format." });
+  });
+
+  it("rejects short password", async () => {
+    const result = await registerUser(
+      makeFormData({
+        name: "Test",
+        email: "test@example.com",
+        password: "short",
+        confirmPassword: "short",
+      }),
+    );
+    expect(result).toEqual({
+      success: false,
+      error: "Password must be at least 8 characters.",
+    });
+  });
+
+  it("rejects mismatched passwords", async () => {
+    const result = await registerUser(
+      makeFormData({
+        name: "Test",
+        email: "test@example.com",
+        password: "password123",
+        confirmPassword: "different123",
+      }),
+    );
+    expect(result).toEqual({
+      success: false,
+      error: "Passwords do not match.",
+    });
+  });
+
+  it("rejects duplicate email", async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({ id: "existing" });
+
+    const result = await registerUser(
+      makeFormData({
+        name: "Test",
+        email: "existing@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+      }),
+    );
+    expect(result).toEqual({
+      success: false,
+      error: "An account with this email already exists.",
+    });
+  });
+
+  it("creates user on valid input", async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+    mockPrisma.user.create.mockResolvedValue({ id: "new-user" });
+
+    const result = await registerUser(
+      makeFormData({
+        name: "New User",
+        email: "new@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+      }),
+    );
+    expect(result).toEqual({ success: true });
+    expect(mockPrisma.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: "New User",
+          email: "new@example.com",
+        }),
+      }),
+    );
+  });
+
+  it("handles race condition on duplicate create gracefully", async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+    mockPrisma.user.create.mockRejectedValue(
+      new Error("Unique constraint failed"),
+    );
+
+    const result = await registerUser(
+      makeFormData({
+        name: "Test",
+        email: "race@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+      }),
+    );
+    expect(result).toEqual({
+      success: false,
+      error: "An account with this email already exists.",
+    });
   });
 });

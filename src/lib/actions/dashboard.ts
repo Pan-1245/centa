@@ -1,10 +1,12 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth-utils";
 import { TransactionType } from "@/generated/prisma/enums";
 import { getOrCreateUserConfig } from "@/lib/actions/config";
 
 export async function getDashboardStats() {
+  const user = await requireAuth();
   const config = await getOrCreateUserConfig();
   if (!config) return null;
 
@@ -34,6 +36,8 @@ export async function getDashboardStats() {
   );
   const prevDateFilter = { gte: prevStartOfMonth, lte: prevEndOfMonth };
 
+  const userId = user.id;
+
   const [
     incomeAgg,
     expenseAgg,
@@ -44,35 +48,36 @@ export async function getDashboardStats() {
     prevSavingsAgg,
   ] = await Promise.all([
     prisma.transaction.aggregate({
-      where: { type: TransactionType.INCOME, date: dateFilter },
+      where: { userId, type: TransactionType.INCOME, date: dateFilter },
       _sum: { amount: true },
     }),
     prisma.transaction.aggregate({
-      where: { type: TransactionType.EXPENSE, date: dateFilter },
+      where: { userId, type: TransactionType.EXPENSE, date: dateFilter },
       _sum: { amount: true },
     }),
     prisma.transaction.aggregate({
-      where: { type: TransactionType.SAVINGS, date: dateFilter },
+      where: { userId, type: TransactionType.SAVINGS, date: dateFilter },
       _sum: { amount: true },
     }),
     prisma.transaction.groupBy({
       by: ["categoryId"],
       where: {
+        userId,
         type: { in: [TransactionType.EXPENSE, TransactionType.SAVINGS] },
         date: dateFilter,
       },
       _sum: { amount: true },
     }),
     prisma.transaction.aggregate({
-      where: { type: TransactionType.INCOME, date: prevDateFilter },
+      where: { userId, type: TransactionType.INCOME, date: prevDateFilter },
       _sum: { amount: true },
     }),
     prisma.transaction.aggregate({
-      where: { type: TransactionType.EXPENSE, date: prevDateFilter },
+      where: { userId, type: TransactionType.EXPENSE, date: prevDateFilter },
       _sum: { amount: true },
     }),
     prisma.transaction.aggregate({
-      where: { type: TransactionType.SAVINGS, date: prevDateFilter },
+      where: { userId, type: TransactionType.SAVINGS, date: prevDateFilter },
       _sum: { amount: true },
     }),
   ]);

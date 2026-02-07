@@ -1,6 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -26,13 +28,18 @@ const defaultPlans = [
 ];
 
 export async function getOrCreateUserConfig() {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+  const userId = session.user.id;
+
   let config = await prisma.userConfig.findFirst({
+    where: { userId },
     include: { activePlan: { include: { categories: true } } },
   });
 
   if (!config) {
     const defaultPlan = await prisma.budgetPlan.findFirst({
-      where: { isDefault: true },
+      where: { isDefault: true, userId },
       include: { categories: true },
     });
 
@@ -41,7 +48,7 @@ export async function getOrCreateUserConfig() {
     }
 
     config = await prisma.userConfig.create({
-      data: { activePlanId: defaultPlan.id },
+      data: { userId, activePlanId: defaultPlan.id },
       include: { activePlan: { include: { categories: true } } },
     });
   }
@@ -50,6 +57,9 @@ export async function getOrCreateUserConfig() {
 }
 
 export async function initializeApp(formData: FormData) {
+  const user = await requireAuth();
+  const userId = user.id;
+
   const selectedIndex = parseInt(formData.get("planIndex") as string, 10);
   if (
     isNaN(selectedIndex) ||
@@ -59,32 +69,41 @@ export async function initializeApp(formData: FormData) {
     return { success: false, error: "Invalid plan selection." };
   }
 
-  const existing = await prisma.userConfig.findFirst();
+  const existing = await prisma.userConfig.findFirst({ where: { userId } });
   if (existing) {
     redirect("/");
   }
 
-  const createdPlans = [];
-  for (const plan of defaultPlans) {
-    const created = await prisma.budgetPlan.create({
-      data: {
-        name: plan.name,
-        isDefault: plan.isDefault,
-        categories: { create: plan.categories },
-      },
-    });
-    createdPlans.push(created);
-  }
+  try {
+    const createdPlans = [];
+    for (const plan of defaultPlans) {
+      const created = await prisma.budgetPlan.create({
+        data: {
+          name: plan.name,
+          isDefault: plan.isDefault,
+          userId,
+          categories: { create: plan.categories },
+        },
+      });
+      createdPlans.push(created);
+    }
 
-  await prisma.userConfig.create({
-    data: { activePlanId: createdPlans[selectedIndex].id },
-  });
+    await prisma.userConfig.create({
+      data: { userId, activePlanId: createdPlans[selectedIndex].id },
+    });
+  } catch {
+    // Race condition: another request already created the config
+    redirect("/");
+  }
 
   revalidatePath("/");
   redirect("/");
 }
 
 export async function initializeWithCustomPlan(formData: FormData) {
+  const user = await requireAuth();
+  const userId = user.id;
+
   const name = formData.get("name") as string;
   const categoriesJson = formData.get("categories") as string;
 
@@ -108,28 +127,34 @@ export async function initializeWithCustomPlan(formData: FormData) {
     return { success: false, error: "Percentages must sum to 100." };
   }
 
-  const existing = await prisma.userConfig.findFirst();
+  const existing = await prisma.userConfig.findFirst({ where: { userId } });
   if (existing) {
     redirect("/");
   }
 
-  const plan = await prisma.budgetPlan.create({
-    data: {
-      name,
-      isCustom: true,
-      categories: {
-        create: categories.map((c) => ({
-          name: c.name,
-          percentage: c.percentage,
-          isSavings: c.isSavings ?? false,
-        })),
+  try {
+    const plan = await prisma.budgetPlan.create({
+      data: {
+        name,
+        isCustom: true,
+        userId,
+        categories: {
+          create: categories.map((c) => ({
+            name: c.name,
+            percentage: c.percentage,
+            isSavings: c.isSavings ?? false,
+          })),
+        },
       },
-    },
-  });
+    });
 
-  await prisma.userConfig.create({
-    data: { activePlanId: plan.id },
-  });
+    await prisma.userConfig.create({
+      data: { userId, activePlanId: plan.id },
+    });
+  } catch {
+    // Race condition: another request already created the config
+    redirect("/");
+  }
 
   revalidatePath("/");
   redirect("/");
@@ -142,7 +167,10 @@ export async function updateCurrency(formData: FormData) {
   }
 
   try {
-    const config = await getOrCreateUserConfig();
+    const user = await requireAuth();
+    const config = await prisma.userConfig.findFirst({
+      where: { userId: user.id },
+    });
     if (!config) {
       return { success: false, error: "No configuration found." };
     }

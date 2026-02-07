@@ -1,18 +1,22 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth-utils";
 import { revalidatePath } from "next/cache";
 import { TransactionType } from "@/generated/prisma/enums";
 import { getOrCreateUserConfig } from "@/lib/actions/config";
 
 export async function getBudgetPlans() {
+  const user = await requireAuth();
   return prisma.budgetPlan.findMany({
+    where: { userId: user.id },
     include: { categories: true },
     orderBy: { createdAt: "asc" },
   });
 }
 
 export async function setActiveBudgetPlan(formData: FormData) {
+  const user = await requireAuth();
   const planId = formData.get("planId") as string;
   if (!planId) {
     return { success: false, error: "Plan ID is required." };
@@ -23,6 +27,15 @@ export async function setActiveBudgetPlan(formData: FormData) {
     if (!config) {
       return { success: false, error: "No configuration found." };
     }
+
+    // Verify the plan belongs to this user
+    const plan = await prisma.budgetPlan.findFirst({
+      where: { id: planId, userId: user.id },
+    });
+    if (!plan) {
+      return { success: false, error: "Plan not found." };
+    }
+
     await prisma.userConfig.update({
       where: { id: config.id },
       data: { activePlanId: planId },
@@ -38,6 +51,7 @@ export async function setActiveBudgetPlan(formData: FormData) {
 }
 
 export async function updateBudgetPlan(formData: FormData) {
+  const user = await requireAuth();
   const planId = formData.get("planId") as string;
   const name = formData.get("name") as string;
   const categoriesJson = formData.get("categories") as string;
@@ -47,6 +61,14 @@ export async function updateBudgetPlan(formData: FormData) {
   }
   if (!name?.trim()) {
     return { success: false, error: "Plan name is required." };
+  }
+
+  // Verify ownership
+  const plan = await prisma.budgetPlan.findFirst({
+    where: { id: planId, userId: user.id },
+  });
+  if (!plan) {
+    return { success: false, error: "Plan not found." };
   }
 
   let categories: {
@@ -86,7 +108,7 @@ export async function updateBudgetPlan(formData: FormData) {
     // Nullify categoryId on transactions for removed categories
     if (removedIds.length > 0) {
       await prisma.transaction.updateMany({
-        where: { categoryId: { in: removedIds } },
+        where: { categoryId: { in: removedIds }, userId: user.id },
         data: { categoryId: null },
       });
       await prisma.budgetCategory.deleteMany({
@@ -110,7 +132,7 @@ export async function updateBudgetPlan(formData: FormData) {
       // If isSavings changed, update transaction types for this category
       if (prev && prev.isSavings !== newIsSavings) {
         await prisma.transaction.updateMany({
-          where: { categoryId: cat.id! },
+          where: { categoryId: cat.id!, userId: user.id },
           data: {
             type: newIsSavings
               ? TransactionType.SAVINGS
@@ -150,6 +172,7 @@ export async function updateBudgetPlan(formData: FormData) {
 }
 
 export async function createCustomPlan(formData: FormData) {
+  const user = await requireAuth();
   const name = formData.get("name") as string;
   const categoriesJson = formData.get("categories") as string;
 
@@ -178,6 +201,7 @@ export async function createCustomPlan(formData: FormData) {
       data: {
         name,
         isCustom: true,
+        userId: user.id,
         categories: {
           create: categories.map((c) => ({
             name: c.name,
@@ -196,6 +220,7 @@ export async function createCustomPlan(formData: FormData) {
 }
 
 export async function deleteBudgetPlan(formData: FormData) {
+  const user = await requireAuth();
   const planId = formData.get("planId") as string;
   if (!planId) {
     return { success: false, error: "Plan ID is required." };
@@ -210,7 +235,9 @@ export async function deleteBudgetPlan(formData: FormData) {
       return { success: false, error: "Cannot delete the active plan." };
     }
 
-    const plan = await prisma.budgetPlan.findUnique({ where: { id: planId } });
+    const plan = await prisma.budgetPlan.findFirst({
+      where: { id: planId, userId: user.id },
+    });
     if (!plan) {
       return { success: false, error: "Plan not found." };
     }
@@ -226,12 +253,14 @@ export async function deleteBudgetPlan(formData: FormData) {
 
     if (categoryIds.length > 0) {
       await prisma.transaction.updateMany({
-        where: { categoryId: { in: categoryIds } },
+        where: { categoryId: { in: categoryIds }, userId: user.id },
         data: { categoryId: null },
       });
     }
 
-    await prisma.budgetPlan.delete({ where: { id: planId } });
+    await prisma.budgetPlan.deleteMany({
+      where: { id: planId, userId: user.id },
+    });
 
     revalidatePath("/config");
     revalidatePath("/");

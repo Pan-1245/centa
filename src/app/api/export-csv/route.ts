@@ -1,11 +1,18 @@
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { format } from "date-fns";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+
   const transactions = await prisma.transaction.findMany({
+    where: { userId: session.user.id },
     include: { category: true },
     orderBy: { date: "desc" },
   });
