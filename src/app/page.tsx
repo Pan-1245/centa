@@ -6,9 +6,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { redirect } from "next/navigation";
-import { getDashboardStats, getOrCreateUserConfig, getSavingsGoals, processRecurringTransactions } from "@/lib/actions";
-import { fetchExchangeRates, formatAmount, timeAgo, CURRENCIES, type CurrencyCode } from "@/lib/currency";
-import { SavingsGoals } from "@/components/savings-goals";
+import { getOrCreateUserConfig } from "@/lib/actions/config";
+import { getDashboardStats } from "@/lib/actions/dashboard";
+import { getSavingsGoals } from "@/lib/actions/savings";
+import { processRecurringTransactions } from "@/lib/actions/recurring";
+import {
+  fetchExchangeRates,
+  formatAmount,
+  timeAgo,
+  CURRENCIES,
+  type CurrencyCode,
+} from "@/lib/currency";
+import { SavingsGoals } from "@/components/savings/savings-goals";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +33,8 @@ export default async function DashboardPage() {
   if (!stats || !config) redirect("/setup");
 
   const currency = (config.currency ?? "THB") as CurrencyCode;
-  const fmt = (amount: number) => formatAmount(amount, currency, rateData.rates);
+  const fmt = (amount: number) =>
+    formatAmount(amount, currency, rateData.rates);
 
   function trend(current: number, previous: number, lowerIsBetter: boolean) {
     if (previous === 0) return null;
@@ -34,7 +44,10 @@ export default async function DashboardPage() {
     const color = improved
       ? "text-green-600 dark:text-green-400"
       : "text-red-600 dark:text-red-400";
-    return { text: `${arrow} ${Math.abs(pctChange).toFixed(0)}% vs last month`, color };
+    return {
+      text: `${arrow} ${Math.abs(pctChange).toFixed(0)}% vs last month`,
+      color,
+    };
   }
 
   return (
@@ -48,10 +61,38 @@ export default async function DashboardPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Total Income", value: stats.totalIncome, prev: stats.prevIncome, lowerIsBetter: false, border: "border-l-green-500", color: "text-green-600 dark:text-green-400" },
-          { label: "Total Expenses", value: stats.totalExpenses, prev: stats.prevExpenses, lowerIsBetter: true, border: "border-l-red-500", color: "text-red-600 dark:text-red-400" },
-          { label: "Total Savings", value: stats.totalSavings, prev: stats.prevSavings, lowerIsBetter: false, border: "border-l-blue-500", color: "text-blue-600 dark:text-blue-400" },
-          { label: "Remaining", value: stats.remaining, prev: stats.prevRemaining, lowerIsBetter: false, border: "border-l-primary", color: "" },
+          {
+            label: "Total Income",
+            value: stats.totalIncome,
+            prev: stats.prevIncome,
+            lowerIsBetter: false,
+            border: "border-l-green-500",
+            color: "text-green-600 dark:text-green-400",
+          },
+          {
+            label: "Total Expenses",
+            value: stats.totalExpenses,
+            prev: stats.prevExpenses,
+            lowerIsBetter: true,
+            border: "border-l-red-500",
+            color: "text-red-600 dark:text-red-400",
+          },
+          {
+            label: "Total Savings",
+            value: stats.totalSavings,
+            prev: stats.prevSavings,
+            lowerIsBetter: false,
+            border: "border-l-blue-500",
+            color: "text-blue-600 dark:text-blue-400",
+          },
+          {
+            label: "Remaining",
+            value: stats.remaining,
+            prev: stats.prevRemaining,
+            lowerIsBetter: false,
+            border: "border-l-primary",
+            color: "",
+          },
         ].map((card) => {
           const t = trend(card.value, card.prev, card.lowerIsBetter);
           return (
@@ -66,7 +107,7 @@ export default async function DashboardPage() {
                 {t ? (
                   <p className={`text-xs ${t.color}`}>{t.text}</p>
                 ) : (
-                  <p className="text-xs text-muted-foreground">This month</p>
+                  <p className="text-muted-foreground text-xs">This month</p>
                 )}
               </CardContent>
             </Card>
@@ -75,9 +116,10 @@ export default async function DashboardPage() {
       </div>
 
       {currency !== "THB" && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           1 THB = {CURRENCIES[currency].symbol}
-          {rateData.rates[currency]?.toFixed(currency === "JPY" ? 2 : 4) ?? "?"}{" "}
+          {rateData.rates[currency]?.toFixed(currency === "JPY" ? 2 : 4) ??
+            "?"}{" "}
           · Updated {timeAgo(rateData.updatedAt)}
         </p>
       )}
@@ -91,20 +133,18 @@ export default async function DashboardPage() {
         </CardHeader>
         <CardContent>
           {stats.breakdown.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               No categories in your active plan.
             </p>
           ) : stats.totalIncome === 0 ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               Add income transactions to see your budget breakdown.
             </p>
           ) : (
             <div className="space-y-4">
               {stats.breakdown.map((cat) => {
                 const rawPct =
-                  cat.budgeted > 0
-                    ? (cat.spent / cat.budgeted) * 100
-                    : 0;
+                  cat.budgeted > 0 ? (cat.spent / cat.budgeted) * 100 : 0;
                 const diff = cat.budgeted - cat.spent;
                 const atBudget = diff >= 0 && diff < 1;
                 const pct = atBudget ? 100 : Math.min(100, rawPct);
@@ -113,7 +153,7 @@ export default async function DashboardPage() {
 
                 return (
                   <div key={cat.name} className="space-y-2">
-                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-sm">
+                    <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
                       <span className="font-medium">
                         {cat.name} ({cat.percentage}%)
                         {over && (
@@ -127,11 +167,13 @@ export default async function DashboardPage() {
                           </span>
                         )}
                       </span>
-                      <span className={`text-xs sm:text-sm ${over ? "text-red-600 dark:text-red-400" : warning ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground sm:text-foreground"}`}>
+                      <span
+                        className={`text-xs sm:text-sm ${over ? "text-red-600 dark:text-red-400" : warning ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground sm:text-foreground"}`}
+                      >
                         {fmt(cat.spent)} / {fmt(cat.budgeted)}
                       </span>
                     </div>
-                    <div className="h-2 rounded-full bg-muted">
+                    <div className="bg-muted h-2 rounded-full">
                       <div
                         className={`h-full rounded-full ${
                           over
@@ -153,7 +195,9 @@ export default async function DashboardPage() {
 
       <SavingsGoals
         goals={goals}
-        savingsCategories={config.activePlan.categories.filter((c) => c.isSavings)}
+        savingsCategories={config.activePlan.categories.filter(
+          (c) => c.isSavings,
+        )}
         currency={currency}
         rates={rateData.rates}
       />

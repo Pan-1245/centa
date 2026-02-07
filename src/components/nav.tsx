@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { updateCurrency } from "@/lib/actions";
+import { updateCurrency } from "@/lib/actions/config";
 import type { CurrencyCode } from "@/lib/currency";
 import { Menu, X } from "lucide-react";
 
@@ -28,17 +28,17 @@ export function Nav({ currency = "THB" }: { currency?: string }) {
   if (pathname === "/setup") return null;
 
   return (
-    <nav className="border-b bg-card">
+    <nav className="bg-card border-b">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-6">
           <Link
             href="/"
-            className="text-lg font-semibold tracking-tight text-primary"
+            className="text-primary text-lg font-semibold tracking-tight"
           >
             Centa
           </Link>
           {/* Desktop navigation */}
-          <div className="hidden sm:flex gap-1">
+          <div className="hidden gap-1 sm:flex">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -46,7 +46,7 @@ export function Nav({ currency = "THB" }: { currency?: string }) {
                 className={cn(
                   "rounded-md px-3 py-1.5 text-sm transition-colors",
                   pathname === link.href
-                    ? "bg-primary/10 font-medium text-primary"
+                    ? "bg-primary/10 text-primary font-medium"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                 )}
               >
@@ -83,7 +83,7 @@ export function Nav({ currency = "THB" }: { currency?: string }) {
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="sm:hidden rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-md p-2 sm:hidden"
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? (
@@ -97,8 +97,8 @@ export function Nav({ currency = "THB" }: { currency?: string }) {
 
       {/* Mobile navigation menu */}
       {mobileMenuOpen && (
-        <div className="sm:hidden border-t bg-card">
-          <div className="flex flex-col py-2 px-4">
+        <div className="bg-card border-t sm:hidden">
+          <div className="flex flex-col px-4 py-2">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -107,7 +107,7 @@ export function Nav({ currency = "THB" }: { currency?: string }) {
                 className={cn(
                   "rounded-md px-3 py-2.5 text-sm transition-colors",
                   pathname === link.href
-                    ? "bg-primary/10 font-medium text-primary"
+                    ? "bg-primary/10 text-primary font-medium"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                 )}
               >

@@ -6,16 +6,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { redirect } from "next/navigation";
-import {
-  getTransactions,
-  getOrCreateUserConfig,
-  getTags,
-  getRecurringTransactions,
-} from "@/lib/actions";
+import { getOrCreateUserConfig } from "@/lib/actions/config";
+import { getTransactions, getTags } from "@/lib/actions/transactions";
+import { getRecurringTransactions } from "@/lib/actions/recurring";
 import { fetchExchangeRates, type CurrencyCode } from "@/lib/currency";
-import { AddTransactionDialog } from "@/components/add-transaction-dialog";
-import { TransactionFilters } from "@/components/transaction-filters";
-import { RecurringTransactions } from "@/components/recurring-transactions";
+import { AddTransactionDialog } from "@/components/transactions/add-transaction-dialog";
+import { TransactionFilters } from "@/components/transactions/transaction-filters";
+import { RecurringTransactions } from "@/components/transactions/recurring-transactions";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";

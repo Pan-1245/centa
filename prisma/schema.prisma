@@ -40,18 +40,20 @@ model UserConfig {
 }
 
 model Transaction {
-  id          String          @id @default(cuid())
-  amount      Float
-  type        TransactionType
-  note        String?
-  date        DateTime        @default(now())
-  category    BudgetCategory? @relation(fields: [categoryId], references: [id])
-  categoryId  String?
-  recurringId String?
-  isRecurring Boolean         @default(false)
-  tags        TransactionTag[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id                String           @id @default(cuid())
+  amount            Float
+  type              TransactionType
+  note              String?
+  date              DateTime         @default(now())
+  category          BudgetCategory?  @relation(fields: [categoryId], references: [id])
+  categoryId        String?
+  recurringId       String?
+  isRecurring       Boolean          @default(false)
+  paymentMethod     PaymentMethod?
+  paymentMethodNote String?
+  tags              TransactionTag[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 }
 
 model Tag {
@@ -98,4 +100,11 @@ enum TransactionType {
   INCOME
   EXPENSE
   SAVINGS
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  OTHER
 }

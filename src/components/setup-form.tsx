@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useActionState } from "react";
-import { initializeApp, initializeWithCustomPlan } from "@/lib/actions";
+import { initializeApp, initializeWithCustomPlan } from "@/lib/actions/config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -49,7 +49,7 @@ export function SetupForm() {
         <Button
           variant="ghost"
           size="sm"
-          className="gap-1 text-muted-foreground"
+          className="text-muted-foreground gap-1"
           onClick={() => setView("choice")}
         >
           <ArrowLeft className="h-4 w-4" />
@@ -59,7 +59,7 @@ export function SetupForm() {
         {presetPlans.map((plan, index) => (
           <Card
             key={plan.name}
-            className="border-l-4 border-l-primary/60 transition-shadow hover:shadow-md"
+            className="border-l-primary/60 border-l-4 transition-shadow hover:shadow-md"
           >
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -82,10 +82,10 @@ export function SetupForm() {
                 {plan.categories.map((category) => (
                   <div
                     key={category.name}
-                    className="flex-1 rounded-md bg-primary/5 p-3 text-center"
+                    className="bg-primary/5 flex-1 rounded-md p-3 text-center"
                   >
                     <p className="text-sm font-medium">{category.name}</p>
-                    <p className="text-2xl font-semibold text-primary">
+                    <p className="text-primary text-2xl font-semibold">
                       {category.percentage}%
                     </p>
                   </div>
@@ -96,13 +96,13 @@ export function SetupForm() {
         ))}
 
         <Card
-          className="cursor-pointer border-dashed transition-all hover:border-primary/50 hover:bg-primary/5 hover:shadow-md"
+          className="hover:border-primary/50 hover:bg-primary/5 cursor-pointer border-dashed transition-all hover:shadow-md"
           onClick={() => setView("custom")}
         >
           <CardHeader>
             <div className="flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <PenLine className="h-5 w-5 text-primary" />
+              <div className="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-full">
+                <PenLine className="text-primary h-5 w-5" />
               </div>
               <div>
                 <CardTitle>Create your own</CardTitle>
@@ -120,12 +120,12 @@ export function SetupForm() {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <Card
-        className="cursor-pointer transition-all hover:border-primary/50 hover:shadow-md"
+        className="hover:border-primary/50 cursor-pointer transition-all hover:shadow-md"
         onClick={() => setView("presets")}
       >
         <CardHeader className="items-center text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <LayoutTemplate className="h-6 w-6 text-primary" />
+          <div className="bg-primary/10 flex h-12 w-12 items-center justify-center rounded-full">
+            <LayoutTemplate className="text-primary h-6 w-6" />
           </div>
           <CardTitle>Use a preset</CardTitle>
           <CardDescription>
@@ -135,12 +135,12 @@ export function SetupForm() {
       </Card>
 
       <Card
-        className="cursor-pointer transition-all hover:border-primary/50 hover:shadow-md"
+        className="hover:border-primary/50 cursor-pointer transition-all hover:shadow-md"
         onClick={() => setView("custom")}
       >
         <CardHeader className="items-center text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <PenLine className="h-6 w-6 text-primary" />
+          <div className="bg-primary/10 flex h-12 w-12 items-center justify-center rounded-full">
+            <PenLine className="text-primary h-6 w-6" />
           </div>
           <CardTitle>Create your own</CardTitle>
           <CardDescription>
@@ -283,7 +283,7 @@ function CustomPlanSetup({ onBack }: { onBack: () => void }) {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-9 w-9 shrink-0 p-0 text-muted-foreground hover:text-destructive"
+                    className="text-muted-foreground hover:text-destructive h-9 w-9 shrink-0 p-0"
                     onClick={() => removeCategory(i)}
                   >
                     <X className="h-4 w-4" />
@@ -302,7 +302,7 @@ function CustomPlanSetup({ onBack }: { onBack: () => void }) {
             </Button>
           </div>
 
-          <div className="flex items-center justify-between rounded-md bg-muted px-3 py-2 text-sm">
+          <div className="bg-muted flex items-center justify-between rounded-md px-3 py-2 text-sm">
             <span>Total</span>
             <span
               className={
@@ -316,7 +316,7 @@ function CustomPlanSetup({ onBack }: { onBack: () => void }) {
           </div>
 
           {state?.error && (
-            <p className="text-sm text-destructive">{state.error}</p>
+            <p className="text-destructive text-sm">{state.error}</p>
           )}
 
           <Button

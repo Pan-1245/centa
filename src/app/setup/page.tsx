@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getOrCreateUserConfig } from "@/lib/actions";
+import { getOrCreateUserConfig } from "@/lib/actions/config";
 import { SetupForm } from "@/components/setup-form";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,7 @@ export default async function SetupPage() {
           <h1 className="text-4xl font-bold tracking-tight">
             Welcome to <span className="text-primary">Centa</span>
           </h1>
-          <p className="mt-3 text-lg text-muted-foreground">
+          <p className="text-muted-foreground mt-3 text-lg">
             Choose a budget plan to get started, or create your own. You can
             always change it later.
           </p>

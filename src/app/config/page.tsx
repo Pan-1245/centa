@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
-import { getBudgetPlans, getOrCreateUserConfig } from "@/lib/actions";
-import { BudgetPlanList } from "@/components/budget-plan-list";
+import { getOrCreateUserConfig } from "@/lib/actions/config";
+import { getBudgetPlans } from "@/lib/actions/budget";
+import { BudgetPlanList } from "@/components/budget/budget-plan-list";
 
 export const dynamic = "force-dynamic";
 

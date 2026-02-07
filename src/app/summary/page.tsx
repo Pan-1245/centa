@@ -1,13 +1,14 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { redirect } from "next/navigation";
-import { getMonthlySummary, getOrCreateUserConfig } from "@/lib/actions";
+import { getOrCreateUserConfig } from "@/lib/actions/config";
+import { getMonthlySummary } from "@/lib/actions/transactions";
 import {
   fetchExchangeRates,
   timeAgo,
   CURRENCIES,
   type CurrencyCode,
 } from "@/lib/currency";
-import { SummaryYearCard } from "@/components/summary-year-card";
+import { SummaryYearCard } from "@/components/summary/summary-year-card";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export default async function SummaryPage() {
       </div>
 
       {currency !== "THB" && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           1 THB = {CURRENCIES[currency].symbol}
           {rateData.rates[currency]?.toFixed(currency === "JPY" ? 2 : 4) ??
             "?"}{" "}
@@ -41,7 +42,7 @@ export default async function SummaryPage() {
 
       {summary.length === 0 ? (
         <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
+          <CardContent className="text-muted-foreground py-8 text-center">
             No transactions yet. Add some to see your monthly summary.
           </CardContent>
         </Card>
