@@ -52,7 +52,11 @@ export async function getOrCreateUserConfig() {
 
 export async function initializeApp(formData: FormData) {
   const selectedIndex = parseInt(formData.get("planIndex") as string, 10);
-  if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= defaultPlans.length) {
+  if (
+    isNaN(selectedIndex) ||
+    selectedIndex < 0 ||
+    selectedIndex >= defaultPlans.length
+  ) {
     return { success: false, error: "Invalid plan selection." };
   }
 
@@ -152,18 +156,31 @@ export async function getDashboardStats() {
     23,
     59,
     59,
-    999
+    999,
   );
 
   const dateFilter = { gte: startOfMonth, lte: endOfMonth };
 
   const prevStartOfMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const prevEndOfMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+  const prevEndOfMonth = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    0,
+    23,
+    59,
+    59,
+    999,
+  );
   const prevDateFilter = { gte: prevStartOfMonth, lte: prevEndOfMonth };
 
   const [
-    incomeAgg, expenseAgg, savingsAgg, spendByCategory,
-    prevIncomeAgg, prevExpenseAgg, prevSavingsAgg,
+    incomeAgg,
+    expenseAgg,
+    savingsAgg,
+    spendByCategory,
+    prevIncomeAgg,
+    prevExpenseAgg,
+    prevSavingsAgg,
   ] = await Promise.all([
     prisma.transaction.aggregate({
       where: { type: TransactionType.INCOME, date: dateFilter },
@@ -210,7 +227,7 @@ export async function getDashboardStats() {
   const prevRemaining = prevIncome - prevExpenses - prevSavings;
 
   const spentByCategory = new Map(
-    spendByCategory.map((g) => [g.categoryId, g._sum.amount ?? 0])
+    spendByCategory.map((g) => [g.categoryId, g._sum.amount ?? 0]),
   );
 
   const breakdown = config.activePlan.categories.map((cat) => ({
@@ -222,8 +239,15 @@ export async function getDashboardStats() {
   }));
 
   return {
-    totalIncome, totalExpenses, totalSavings, remaining, breakdown,
-    prevIncome, prevExpenses, prevSavings, prevRemaining,
+    totalIncome,
+    totalExpenses,
+    totalSavings,
+    remaining,
+    breakdown,
+    prevIncome,
+    prevExpenses,
+    prevSavings,
+    prevRemaining,
   };
 }
 
@@ -266,12 +290,25 @@ export async function getMonthlySummary(): Promise<YearSummary[]> {
     orderBy: { date: "asc" },
   });
 
-  const map = new Map<string, { income: number; expenses: number; savings: number; transactions: MonthTransaction[] }>();
+  const map = new Map<
+    string,
+    {
+      income: number;
+      expenses: number;
+      savings: number;
+      transactions: MonthTransaction[];
+    }
+  >();
 
   for (const tx of transactions) {
     const d = new Date(tx.date);
     const key = `${d.getFullYear()}-${d.getMonth()}`;
-    const entry = map.get(key) ?? { income: 0, expenses: 0, savings: 0, transactions: [] };
+    const entry = map.get(key) ?? {
+      income: 0,
+      expenses: 0,
+      savings: 0,
+      transactions: [],
+    };
     if (tx.type === "INCOME") {
       entry.income += tx.amount;
     } else if (tx.type === "SAVINGS") {
@@ -297,7 +334,13 @@ export async function getMonthlySummary(): Promise<YearSummary[]> {
     const year = parseInt(yearStr);
     const month = parseInt(monthStr);
     const arr = yearMap.get(year) ?? [];
-    arr.push({ month, income: val.income, expenses: val.expenses, savings: val.savings, transactions: val.transactions });
+    arr.push({
+      month,
+      income: val.income,
+      expenses: val.expenses,
+      savings: val.savings,
+      transactions: val.transactions,
+    });
     yearMap.set(year, arr);
   }
 
@@ -324,10 +367,16 @@ export async function createTransaction(formData: FormData) {
     return { success: false, error: "Amount must be a positive number." };
   }
   if (type !== "INCOME" && type !== "EXPENSE" && type !== "SAVINGS") {
-    return { success: false, error: "Type must be INCOME, EXPENSE, or SAVINGS." };
+    return {
+      success: false,
+      error: "Type must be INCOME, EXPENSE, or SAVINGS.",
+    };
   }
   if ((type === "EXPENSE" || type === "SAVINGS") && !categoryId) {
-    return { success: false, error: "Category is required for expenses and savings." };
+    return {
+      success: false,
+      error: "Category is required for expenses and savings.",
+    };
   }
   if (!date) {
     return { success: false, error: "Date is required." };
@@ -348,7 +397,10 @@ export async function createTransaction(formData: FormData) {
       createdTx = await prisma.transaction.create({
         data: {
           amount: parseFloat(amount),
-          type: type === "SAVINGS" ? TransactionType.SAVINGS : TransactionType.EXPENSE,
+          type:
+            type === "SAVINGS"
+              ? TransactionType.SAVINGS
+              : TransactionType.EXPENSE,
           category: { connect: { id: categoryId } },
           note: note || null,
           date: new Date(date),
@@ -357,7 +409,10 @@ export async function createTransaction(formData: FormData) {
     }
 
     if (tagsRaw?.trim()) {
-      const tagNames = tagsRaw.split(",").map((t) => t.trim()).filter(Boolean);
+      const tagNames = tagsRaw
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
       for (const tagName of tagNames) {
         const tag = await prisma.tag.upsert({
           where: { name: tagName },
@@ -456,7 +511,12 @@ export async function updateBudgetPlan(formData: FormData) {
     return { success: false, error: "Plan name is required." };
   }
 
-  let categories: { id?: string; name: string; percentage: number; isSavings?: boolean }[];
+  let categories: {
+    id?: string;
+    name: string;
+    percentage: number;
+    isSavings?: boolean;
+  }[];
   try {
     categories = JSON.parse(categoriesJson);
   } catch {
@@ -479,7 +539,7 @@ export async function updateBudgetPlan(formData: FormData) {
     });
     const existingIds = new Set(existingCategories.map((c) => c.id));
     const submittedIds = new Set(
-      categories.filter((c) => c.id).map((c) => c.id!)
+      categories.filter((c) => c.id).map((c) => c.id!),
     );
 
     // Find removed category IDs
@@ -503,13 +563,21 @@ export async function updateBudgetPlan(formData: FormData) {
       const newIsSavings = cat.isSavings ?? false;
       await prisma.budgetCategory.update({
         where: { id: cat.id! },
-        data: { name: cat.name, percentage: cat.percentage, isSavings: newIsSavings },
+        data: {
+          name: cat.name,
+          percentage: cat.percentage,
+          isSavings: newIsSavings,
+        },
       });
       // If isSavings changed, update transaction types for this category
       if (prev && prev.isSavings !== newIsSavings) {
         await prisma.transaction.updateMany({
           where: { categoryId: cat.id! },
-          data: { type: newIsSavings ? TransactionType.SAVINGS : TransactionType.EXPENSE },
+          data: {
+            type: newIsSavings
+              ? TransactionType.SAVINGS
+              : TransactionType.EXPENSE,
+          },
         });
       }
     }
@@ -654,7 +722,7 @@ export async function getSavingsGoals() {
         currentAmount = agg._sum.amount ?? 0;
       }
       return { ...goal, currentAmount };
-    })
+    }),
   );
 
   return goalsWithProgress;
@@ -667,7 +735,8 @@ export async function createSavingsGoal(formData: FormData) {
   const deadline = formData.get("deadline") as string;
 
   if (!name?.trim()) return { success: false, error: "Name is required." };
-  if (isNaN(targetAmount) || targetAmount <= 0) return { success: false, error: "Target must be a positive number." };
+  if (isNaN(targetAmount) || targetAmount <= 0)
+    return { success: false, error: "Target must be a positive number." };
 
   try {
     await prisma.savingsGoal.create({
@@ -714,10 +783,14 @@ export async function createRecurringTransaction(formData: FormData) {
   const note = formData.get("note") as string;
   const dayOfMonth = parseInt(formData.get("dayOfMonth") as string, 10);
 
-  if (isNaN(amount) || amount <= 0) return { success: false, error: "Amount must be positive." };
-  if (!["INCOME", "EXPENSE", "SAVINGS"].includes(type)) return { success: false, error: "Invalid type." };
-  if ((type === "EXPENSE" || type === "SAVINGS") && !categoryId) return { success: false, error: "Category is required." };
-  if (isNaN(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 28) return { success: false, error: "Day must be 1-28." };
+  if (isNaN(amount) || amount <= 0)
+    return { success: false, error: "Amount must be positive." };
+  if (!["INCOME", "EXPENSE", "SAVINGS"].includes(type))
+    return { success: false, error: "Invalid type." };
+  if ((type === "EXPENSE" || type === "SAVINGS") && !categoryId)
+    return { success: false, error: "Category is required." };
+  if (isNaN(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 28)
+    return { success: false, error: "Day must be 1-28." };
 
   try {
     await prisma.recurringTransaction.create({
@@ -756,7 +829,9 @@ export async function toggleRecurringTransaction(formData: FormData) {
   if (!id) return { success: false, error: "ID is required." };
 
   try {
-    const rule = await prisma.recurringTransaction.findUnique({ where: { id } });
+    const rule = await prisma.recurringTransaction.findUnique({
+      where: { id },
+    });
     if (!rule) return { success: false, error: "Not found." };
 
     await prisma.recurringTransaction.update({

@@ -39,7 +39,11 @@ export function timeAgo(unixSeconds: number): string {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
-function formatNumber(amount: number, decimals: number, locale: string): string {
+function formatNumber(
+  amount: number,
+  decimals: number,
+  locale: string,
+): string {
   return new Intl.NumberFormat(locale, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
@@ -49,9 +53,10 @@ function formatNumber(amount: number, decimals: number, locale: string): string 
 export function formatAmount(
   amountInThb: number,
   currency: CurrencyCode,
-  rates: ExchangeRates
+  rates: ExchangeRates,
 ): string {
   const config = CURRENCIES[currency];
-  const converted = currency === "THB" ? amountInThb : amountInThb * (rates[currency] ?? 1);
+  const converted =
+    currency === "THB" ? amountInThb : amountInThb * (rates[currency] ?? 1);
   return `${config.symbol}${formatNumber(converted, config.decimals, config.locale)}`;
 }
