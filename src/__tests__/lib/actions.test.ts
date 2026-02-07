@@ -328,12 +328,42 @@ describe("getDashboardStats", () => {
     expect(result!.breakdown[0].spent).toBe(3000);
     expect(result!.breakdown[0].budgeted).toBe(5000); // 50% of 10000
   });
+
+  it("uses Math.round for budget calculation", async () => {
+    const config = {
+      id: "c1",
+      activePlanId: "p1",
+      activePlan: {
+        categories: [
+          { id: "cat1", name: "Needs", percentage: 33.33, isSavings: false },
+          { id: "cat2", name: "Wants", percentage: 66.67, isSavings: false },
+        ],
+      },
+    };
+    mockPrisma.userConfig.findFirst.mockResolvedValue(config);
+
+    mockPrisma.transaction.aggregate
+      .mockResolvedValueOnce({ _sum: { amount: 1000 } }) // income
+      .mockResolvedValueOnce({ _sum: { amount: 0 } }) // expenses
+      .mockResolvedValueOnce({ _sum: { amount: 0 } }) // savings
+      .mockResolvedValueOnce({ _sum: { amount: 0 } }) // prev income
+      .mockResolvedValueOnce({ _sum: { amount: 0 } }) // prev expenses
+      .mockResolvedValueOnce({ _sum: { amount: 0 } }); // prev savings
+
+    mockPrisma.transaction.groupBy.mockResolvedValue([]);
+
+    const result = await getDashboardStats();
+    // Math.round(33.33/100 * 1000 * 100) / 100 = Math.round(33330) / 100 = 333.30
+    expect(result!.breakdown[0].budgeted).toBe(333.3);
+    // Math.round(66.67/100 * 1000 * 100) / 100 = Math.round(66670) / 100 = 666.70
+    expect(result!.breakdown[1].budgeted).toBe(666.7);
+  });
 });
 
 // ==================== getTransactions ====================
 
 describe("getTransactions", () => {
-  it("returns transactions with category and tags", async () => {
+  it("returns transactions with category and tags, sorted by date then createdAt", async () => {
     const txs = [{ id: "t1", amount: 100, tags: [], category: null }];
     mockPrisma.transaction.findMany.mockResolvedValue(txs);
 
@@ -342,6 +372,7 @@ describe("getTransactions", () => {
     expect(mockPrisma.transaction.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         include: { category: true, tags: { include: { tag: true } } },
+        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
       }),
     );
   });
@@ -1055,7 +1086,7 @@ describe("processRecurringTransactions", () => {
 // ==================== getMonthlySummary ====================
 
 describe("getMonthlySummary", () => {
-  it("groups transactions by year and month", async () => {
+  it("groups transactions by year and 1-indexed month", async () => {
     mockPrisma.transaction.findMany.mockResolvedValue([
       {
         id: "t1",
@@ -1091,12 +1122,33 @@ describe("getMonthlySummary", () => {
     expect(result[0].year).toBe(2025);
     expect(result[0].months).toHaveLength(2); // Jan and Feb
 
-    const jan = result[0].months.find((m) => m.month === 0);
+    // Months are now 1-indexed
+    const jan = result[0].months.find((m) => m.month === 1);
     expect(jan!.income).toBe(5000);
     expect(jan!.expenses).toBe(2000);
 
-    const feb = result[0].months.find((m) => m.month === 1);
+    const feb = result[0].months.find((m) => m.month === 2);
     expect(feb!.savings).toBe(1000);
+  });
+
+  it("rounds accumulated sums to avoid float drift", async () => {
+    // 200 transactions of 0.01 each
+    const txs = Array.from({ length: 200 }, (_, i) => ({
+      id: `t${i}`,
+      amount: 0.01,
+      type: "EXPENSE" as const,
+      note: null,
+      date: new Date("2025-01-15"),
+      category: { name: "Needs" },
+      categoryId: "c1",
+    }));
+    mockPrisma.transaction.findMany.mockResolvedValue(txs);
+
+    const result = await getMonthlySummary();
+    const jan = result[0].months[0];
+    // Without rounding: 2.0000000000000018
+    // With rounding: 2.00
+    expect(jan.expenses).toBe(2);
   });
 
   it("returns empty array when no transactions", async () => {

@@ -7,7 +7,7 @@ import { TransactionType, PaymentMethod } from "@/generated/prisma/enums";
 export async function getTransactions() {
   return prisma.transaction.findMany({
     include: { category: true, tags: { include: { tag: true } } },
-    orderBy: { date: "desc" },
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
   });
 }
 
@@ -55,7 +55,7 @@ export async function getMonthlySummary(): Promise<YearSummary[]> {
 
   for (const tx of transactions) {
     const d = new Date(tx.date);
-    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
     const entry = map.get(key) ?? {
       income: 0,
       expenses: 0,
@@ -86,6 +86,11 @@ export async function getMonthlySummary(): Promise<YearSummary[]> {
     const [yearStr, monthStr] = key.split("-");
     const year = parseInt(yearStr);
     const month = parseInt(monthStr);
+    // Round accumulated sums to avoid float drift
+    val.income = Math.round(val.income * 100) / 100;
+    val.expenses = Math.round(val.expenses * 100) / 100;
+    val.savings = Math.round(val.savings * 100) / 100;
+
     const arr = yearMap.get(year) ?? [];
     arr.push({
       month,

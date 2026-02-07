@@ -108,7 +108,7 @@ export function SummaryYearCard({
                             isExpanded && "rotate-180",
                           )}
                         />
-                        {MONTH_NAMES[m.month]}
+                        {MONTH_NAMES[m.month - 1]}
                       </span>
                     </TableCell>
                     <TableCell className="text-right text-green-600 dark:text-green-400">

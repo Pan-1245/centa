@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { format } from "date-fns";
 
 export const dynamic = "force-dynamic";
 
@@ -11,14 +12,14 @@ export async function GET() {
 
   const header = "Date,Type,Category,Amount,Note";
   const rows = transactions.map((tx) => {
-    const date = new Date(tx.date).toISOString().split("T")[0];
+    const date = format(new Date(tx.date), "yyyy-MM-dd");
     const category = tx.category?.name ?? "";
     const note = tx.note ? `"${tx.note.replace(/"/g, '""')}"` : "";
     return `${date},${tx.type},${category},${tx.amount},${note}`;
   });
 
   const csv = [header, ...rows].join("\n");
-  const today = new Date().toISOString().split("T")[0];
+  const today = format(new Date(), "yyyy-MM-dd");
 
   return new NextResponse(csv, {
     headers: {

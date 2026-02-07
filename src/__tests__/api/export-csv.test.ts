@@ -74,6 +74,27 @@ describe("GET /api/export-csv", () => {
     );
   });
 
+  it("uses local date format (not UTC)", async () => {
+    // Create a date that would differ between UTC and local timezone
+    const localDate = new Date(2025, 2, 15, 0, 0, 0); // March 15, midnight local
+    mockPrisma.transaction.findMany.mockResolvedValue([
+      {
+        date: localDate,
+        type: "INCOME",
+        category: null,
+        amount: 1000,
+        note: null,
+      },
+    ]);
+
+    const response = await GET();
+    const text = await response.text();
+    const lines = text.split("\n");
+
+    // date-fns format uses local time, so should always be 2025-03-15
+    expect(lines[1]).toMatch(/^2025-03-15,/);
+  });
+
   it("returns only header row when no transactions exist", async () => {
     mockPrisma.transaction.findMany.mockResolvedValue([]);
 

@@ -95,7 +95,7 @@ export async function getDashboardStats() {
     name: cat.name,
     percentage: cat.percentage,
     isSavings: cat.isSavings,
-    budgeted: Math.floor((cat.percentage / 100) * totalIncome * 100) / 100,
+    budgeted: Math.round((cat.percentage / 100) * totalIncome * 100) / 100,
     spent: spentByCategory.get(cat.id) ?? 0,
   }));
 
