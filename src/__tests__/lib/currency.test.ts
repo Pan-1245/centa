@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { formatAmount, timeAgo, fetchExchangeRates, CURRENCIES } from "@/lib/currency";
+import {
+  formatAmount,
+  timeAgo,
+  fetchExchangeRates,
+  CURRENCIES,
+} from "@/lib/currency";
 
 describe("formatAmount", () => {
   const rates = { THB: 1, USD: 0.029, JPY: 4.3 };
@@ -67,7 +72,7 @@ describe("fetchExchangeRates", () => {
             rates: { THB: 1, USD: 0.03, JPY: 4.5 },
             time_last_update_unix: 1700000000,
           }),
-      })
+      }),
     );
 
     const result = await fetchExchangeRates();
@@ -79,7 +84,7 @@ describe("fetchExchangeRates", () => {
   it("returns fallback rates on fetch failure", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockRejectedValue(new Error("network error"))
+      vi.fn().mockRejectedValue(new Error("network error")),
     );
 
     const result = await fetchExchangeRates();
@@ -93,7 +98,7 @@ describe("fetchExchangeRates", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         json: () => Promise.resolve({}),
-      })
+      }),
     );
 
     const result = await fetchExchangeRates();

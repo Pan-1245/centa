@@ -22,7 +22,7 @@ describe("GET /api/export-csv", () => {
 
     expect(response.headers.get("Content-Type")).toBe("text/csv");
     expect(response.headers.get("Content-Disposition")).toMatch(
-      /^attachment; filename="centa-transactions-\d{4}-\d{2}-\d{2}\.csv"$/
+      /^attachment; filename="centa-transactions-\d{4}-\d{2}-\d{2}\.csv"$/,
     );
   });
 
@@ -70,7 +70,7 @@ describe("GET /api/export-csv", () => {
     const lines = text.split("\n");
 
     expect(lines[1]).toBe(
-      '2025-01-01,EXPENSE,Shopping,200,"Got a ""deal"" on shoes"'
+      '2025-01-01,EXPENSE,Shopping,200,"Got a ""deal"" on shoes"',
     );
   });
 
