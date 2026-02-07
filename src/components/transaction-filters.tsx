@@ -61,14 +61,20 @@ export function TransactionFilters({
         if (txDate > to) return false;
       }
       if (typeFilter !== "ALL" && tx.type !== typeFilter) return false;
-      if (categoryFilter !== "ALL" && tx.category?.id !== categoryFilter) return false;
-      if (tagFilter !== "ALL" && !tx.tags?.some((t) => t.tag.id === tagFilter)) return false;
+      if (categoryFilter !== "ALL" && tx.category?.id !== categoryFilter)
+        return false;
+      if (tagFilter !== "ALL" && !tx.tags?.some((t) => t.tag.id === tagFilter))
+        return false;
       return true;
     });
   }, [transactions, dateFrom, dateTo, typeFilter, categoryFilter, tagFilter]);
 
   const hasFilters =
-    dateFrom || dateTo || typeFilter !== "ALL" || categoryFilter !== "ALL" || tagFilter !== "ALL";
+    dateFrom ||
+    dateTo ||
+    typeFilter !== "ALL" ||
+    categoryFilter !== "ALL" ||
+    tagFilter !== "ALL";
 
   const clearFilters = () => {
     setDateFrom(undefined);
@@ -80,19 +86,33 @@ export function TransactionFilters({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-muted-foreground">From</label>
-          <DatePicker value={dateFrom} onChange={setDateFrom} placeholder="Start date" />
+          <label className="text-xs font-medium text-muted-foreground">
+            From
+          </label>
+          <DatePicker
+            value={dateFrom}
+            onChange={setDateFrom}
+            placeholder="Start date"
+          />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-muted-foreground">To</label>
-          <DatePicker value={dateTo} onChange={setDateTo} placeholder="End date" />
+          <label className="text-xs font-medium text-muted-foreground">
+            To
+          </label>
+          <DatePicker
+            value={dateTo}
+            onChange={setDateTo}
+            placeholder="End date"
+          />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Type</label>
+          <label className="text-xs font-medium text-muted-foreground">
+            Type
+          </label>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[130px]">
+            <SelectTrigger className="w-full sm:w-32.5">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -104,9 +124,11 @@ export function TransactionFilters({
           </Select>
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Category</label>
+          <label className="text-xs font-medium text-muted-foreground">
+            Category
+          </label>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-full sm:w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -121,9 +143,11 @@ export function TransactionFilters({
         </div>
         {tags.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Tag</label>
+            <label className="text-xs font-medium text-muted-foreground">
+              Tag
+            </label>
             <Select value={tagFilter} onValueChange={setTagFilter}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-full sm:w-35">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -138,7 +162,12 @@ export function TransactionFilters({
           </div>
         )}
         {hasFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="col-span-2 sm:col-span-1"
+          >
             <X className="mr-1 h-3.5 w-3.5" /> Clear
           </Button>
         )}
@@ -150,7 +179,11 @@ export function TransactionFilters({
         </p>
       )}
 
-      <TransactionTable transactions={filtered} currency={currency} rates={rates} />
+      <TransactionTable
+        transactions={filtered}
+        currency={currency}
+        rates={rates}
+      />
     </div>
   );
 }

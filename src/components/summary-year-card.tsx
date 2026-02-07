@@ -27,8 +27,18 @@ import {
 import type { MonthTransaction, MonthSummary } from "@/lib/actions";
 
 const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 const typeColor: Record<string, string> = {
@@ -65,7 +75,7 @@ export function SummaryYearCard({
           {months.length} {months.length === 1 ? "month" : "months"} of activity
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -92,7 +102,7 @@ export function SummaryYearCard({
                         <ChevronDown
                           className={cn(
                             "h-3.5 w-3.5 text-muted-foreground transition-transform",
-                            isExpanded && "rotate-180"
+                            isExpanded && "rotate-180",
                           )}
                         />
                         {MONTH_NAMES[m.month]}
@@ -110,7 +120,7 @@ export function SummaryYearCard({
                     <TableCell
                       className={cn(
                         "text-right font-medium",
-                        remaining < 0 && "text-red-600 dark:text-red-400"
+                        remaining < 0 && "text-red-600 dark:text-red-400",
                       )}
                     >
                       {fmt(remaining)}
@@ -145,7 +155,7 @@ export function SummaryYearCard({
               <TableCell
                 className={cn(
                   "text-right font-semibold",
-                  yearRemaining < 0 && "text-red-600 dark:text-red-400"
+                  yearRemaining < 0 && "text-red-600 dark:text-red-400",
                 )}
               >
                 {fmt(yearRemaining)}
@@ -166,12 +176,44 @@ function TransactionDetail({
   fmt: (amount: number) => string;
 }) {
   const sorted = [...transactions].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
   );
 
   return (
     <div className="border-t bg-muted/30 px-4 py-3">
-      <table className="w-full text-sm">
+      {/* Mobile list view */}
+      <div className="space-y-2 sm:hidden">
+        {sorted.map((tx) => {
+          const date = new Date(tx.date);
+          const formatted = date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          });
+          const color = typeColor[tx.type] ?? "";
+          const prefix = tx.type === "INCOME" ? "+" : "-";
+
+          return (
+            <div
+              key={tx.id}
+              className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-sm truncate">
+                  {tx.note || tx.categoryName || "--"}
+                </p>
+                <p className="text-xs text-muted-foreground">{formatted}</p>
+              </div>
+              <span className={cn("text-sm font-medium shrink-0 ml-2", color)}>
+                {prefix}
+                {fmt(tx.amount)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop table view */}
+      <table className="hidden sm:table w-full text-sm">
         <thead>
           <tr className="text-xs text-muted-foreground">
             <th className="pb-2 text-left font-medium">Date</th>
@@ -198,7 +240,8 @@ function TransactionDetail({
                 </td>
                 <td className="py-1.5">{tx.categoryName ?? "--"}</td>
                 <td className={cn("py-1.5 text-right font-medium", color)}>
-                  {prefix}{fmt(tx.amount)}
+                  {prefix}
+                  {fmt(tx.amount)}
                 </td>
               </tr>
             );

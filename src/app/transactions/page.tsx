@@ -6,7 +6,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { redirect } from "next/navigation";
-import { getTransactions, getOrCreateUserConfig, getTags, getRecurringTransactions } from "@/lib/actions";
+import {
+  getTransactions,
+  getOrCreateUserConfig,
+  getTags,
+  getRecurringTransactions,
+} from "@/lib/actions";
 import { fetchExchangeRates, type CurrencyCode } from "@/lib/currency";
 import { AddTransactionDialog } from "@/components/add-transaction-dialog";
 import { TransactionFilters } from "@/components/transaction-filters";
@@ -16,13 +21,14 @@ import { Button } from "@/components/ui/button";
 export const dynamic = "force-dynamic";
 
 export default async function TransactionsPage() {
-  const [transactions, config, rateData, tags, recurringRules] = await Promise.all([
-    getTransactions(),
-    getOrCreateUserConfig(),
-    fetchExchangeRates(),
-    getTags(),
-    getRecurringTransactions(),
-  ]);
+  const [transactions, config, rateData, tags, recurringRules] =
+    await Promise.all([
+      getTransactions(),
+      getOrCreateUserConfig(),
+      fetchExchangeRates(),
+      getTags(),
+      getRecurringTransactions(),
+    ]);
 
   if (!config) redirect("/setup");
 
@@ -31,7 +37,7 @@ export default async function TransactionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
             Transactions
@@ -42,7 +48,9 @@ export default async function TransactionsPage() {
         </div>
         <div className="flex items-center gap-2">
           <a href="/api/export-csv" download>
-            <Button variant="outline">Export CSV</Button>
+            <Button variant="outline" size="sm" className="sm:size-default">
+              Export CSV
+            </Button>
           </a>
           <AddTransactionDialog categories={categories} />
         </div>

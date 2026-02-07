@@ -32,7 +32,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Trash2, Repeat } from "lucide-react";
-import { formatAmount, type CurrencyCode, type ExchangeRates } from "@/lib/currency";
+import {
+  formatAmount,
+  type CurrencyCode,
+  type ExchangeRates,
+} from "@/lib/currency";
 
 const typeColor: Record<string, string> = {
   INCOME: "text-green-600 dark:text-green-400",
@@ -72,7 +76,7 @@ export function RecurringTransactions({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
               <Repeat className="h-4 w-4" />
@@ -99,52 +103,79 @@ export function RecurringTransactions({
               return (
                 <div
                   key={rule.id}
-                  className={`flex items-center justify-between rounded-md border p-3 ${
+                  className={`rounded-md border p-3 ${
                     !rule.isActive ? "opacity-50" : ""
                   }`}
                 >
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className={`font-medium ${color}`}>
-                        {prefix}{fmt(rule.amount)}
-                      </span>
-                      <span className="text-muted-foreground">·</span>
-                      <span className="text-muted-foreground">{rule.type}</span>
-                      {rule.category && (
-                        <>
-                          <span className="text-muted-foreground">·</span>
-                          <span>{rule.category.name}</span>
-                        </>
-                      )}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                        <span className={`font-medium ${color}`}>
+                          {prefix}
+                          {fmt(rule.amount)}
+                        </span>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground">
+                          {rule.type}
+                        </span>
+                        {rule.category && (
+                          <>
+                            <span className="hidden sm:inline text-muted-foreground">
+                              ·
+                            </span>
+                            <span className="hidden sm:inline">
+                              {rule.category.name}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                        <span>Day {rule.dayOfMonth}</span>
+                        {rule.category && (
+                          <span className="sm:hidden">
+                            · {rule.category.name}
+                          </span>
+                        )}
+                        {rule.note && (
+                          <>
+                            <span>·</span>
+                            <span className="truncate">{rule.note}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>Day {rule.dayOfMonth} of each month</span>
-                      {rule.note && (
-                        <>
-                          <span>·</span>
-                          <span>{rule.note}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <form action={async (formData: FormData) => { await toggleRecurringTransaction(formData); }}>
-                      <input type="hidden" name="id" value={rule.id} />
-                      <Button type="submit" variant="ghost" size="sm" className="text-xs">
-                        {rule.isActive ? "Pause" : "Resume"}
-                      </Button>
-                    </form>
-                    <form action={async (formData: FormData) => { await deleteRecurringTransaction(formData); }}>
-                      <input type="hidden" name="id" value={rule.id} />
-                      <Button
-                        type="submit"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                    <div className="flex items-center gap-1 shrink-0">
+                      <form
+                        action={async (formData: FormData) => {
+                          await toggleRecurringTransaction(formData);
+                        }}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </form>
+                        <input type="hidden" name="id" value={rule.id} />
+                        <Button
+                          type="submit"
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-8 px-2"
+                        >
+                          {rule.isActive ? "Pause" : "Resume"}
+                        </Button>
+                      </form>
+                      <form
+                        action={async (formData: FormData) => {
+                          await deleteRecurringTransaction(formData);
+                        }}
+                      >
+                        <input type="hidden" name="id" value={rule.id} />
+                        <Button
+                          type="submit"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </form>
+                    </div>
                   </div>
                 </div>
               );
@@ -164,13 +195,14 @@ function AddRecurringDialog({ categories }: { categories: Category[] }) {
 
   const expenseCategories = categories.filter((c) => !c.isSavings);
   const savingsCategories = categories.filter((c) => c.isSavings);
-  const visibleCategories = type === "SAVINGS" ? savingsCategories : expenseCategories;
+  const visibleCategories =
+    type === "SAVINGS" ? savingsCategories : expenseCategories;
   const needsCategory = type === "EXPENSE" || type === "SAVINGS";
 
   const [state, formAction, pending] = useActionState(
     async (
       _prev: { success: boolean; error?: string } | null,
-      formData: FormData
+      formData: FormData,
     ) => {
       const result = await createRecurringTransaction(formData);
       if (result.success) {
@@ -181,7 +213,7 @@ function AddRecurringDialog({ categories }: { categories: Category[] }) {
       }
       return result;
     },
-    null
+    null,
   );
 
   return (
@@ -283,7 +315,11 @@ function AddRecurringDialog({ categories }: { categories: Category[] }) {
             <label htmlFor="rec-note" className="text-sm font-medium">
               Note
             </label>
-            <Input id="rec-note" name="note" placeholder="e.g. Monthly salary" />
+            <Input
+              id="rec-note"
+              name="note"
+              placeholder="e.g. Monthly salary"
+            />
           </div>
 
           {state?.error && (
@@ -291,7 +327,10 @@ function AddRecurringDialog({ categories }: { categories: Category[] }) {
           )}
 
           <DialogFooter>
-            <Button type="submit" disabled={pending || (needsCategory && !categoryId)}>
+            <Button
+              type="submit"
+              disabled={pending || (needsCategory && !categoryId)}
+            >
               {pending ? "Creating..." : "Create Recurring"}
             </Button>
           </DialogFooter>

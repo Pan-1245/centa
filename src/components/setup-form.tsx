@@ -57,7 +57,10 @@ export function SetupForm() {
         </Button>
 
         {presetPlans.map((plan, index) => (
-          <Card key={plan.name} className="border-l-4 border-l-primary/60 transition-shadow hover:shadow-md">
+          <Card
+            key={plan.name}
+            className="border-l-4 border-l-primary/60 transition-shadow hover:shadow-md"
+          >
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -158,36 +161,39 @@ function CustomPlanSetup({ onBack }: { onBack: () => void }) {
   const [state, formAction, pending] = useActionState(
     async (
       _prev: { success: boolean; error?: string } | null,
-      formData: FormData
+      formData: FormData,
     ) => {
       return await initializeWithCustomPlan(formData);
     },
-    null
+    null,
   );
 
   const total = categories.reduce(
     (sum, c) => sum + (parseFloat(c.percentage) || 0),
-    0
+    0,
   );
 
   const updateCategory = (
     index: number,
     field: "name" | "percentage",
-    value: string
+    value: string,
   ) => {
     setCategories((prev) =>
-      prev.map((c, i) => (i === index ? { ...c, [field]: value } : c))
+      prev.map((c, i) => (i === index ? { ...c, [field]: value } : c)),
     );
   };
 
   const toggleSavings = (index: number) => {
     setCategories((prev) =>
-      prev.map((c, i) => (i === index ? { ...c, isSavings: !c.isSavings } : c))
+      prev.map((c, i) => (i === index ? { ...c, isSavings: !c.isSavings } : c)),
     );
   };
 
   const addCategory = () => {
-    setCategories((prev) => [...prev, { name: "", percentage: "", isSavings: false }]);
+    setCategories((prev) => [
+      ...prev,
+      { name: "", percentage: "", isSavings: false },
+    ]);
   };
 
   const removeCategory = (index: number) => {
@@ -225,7 +231,7 @@ function CustomPlanSetup({ onBack }: { onBack: () => void }) {
                 name: c.name,
                 percentage: parseFloat(c.percentage) || 0,
                 isSavings: c.isSavings,
-              }))
+              })),
             )}
           />
 

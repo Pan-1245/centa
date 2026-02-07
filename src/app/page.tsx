@@ -113,7 +113,7 @@ export default async function DashboardPage() {
 
                 return (
                   <div key={cat.name} className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-sm">
                       <span className="font-medium">
                         {cat.name} ({cat.percentage}%)
                         {over && (
@@ -127,7 +127,7 @@ export default async function DashboardPage() {
                           </span>
                         )}
                       </span>
-                      <span className={over ? "text-red-600 dark:text-red-400" : warning ? "text-amber-600 dark:text-amber-400" : ""}>
+                      <span className={`text-xs sm:text-sm ${over ? "text-red-600 dark:text-red-400" : warning ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground sm:text-foreground"}`}>
                         {fmt(cat.spent)} / {fmt(cat.budgeted)}
                       </span>
                     </div>

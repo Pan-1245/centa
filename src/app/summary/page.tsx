@@ -33,7 +33,8 @@ export default async function SummaryPage() {
       {currency !== "THB" && (
         <p className="text-xs text-muted-foreground">
           1 THB = {CURRENCIES[currency].symbol}
-          {rateData.rates[currency]?.toFixed(currency === "JPY" ? 2 : 4) ?? "?"}{" "}
+          {rateData.rates[currency]?.toFixed(currency === "JPY" ? 2 : 4) ??
+            "?"}{" "}
           · Updated {timeAgo(rateData.updatedAt)}
         </p>
       )}

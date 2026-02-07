@@ -33,7 +33,12 @@ type Plan = {
   name: string;
   isDefault: boolean;
   isCustom: boolean;
-  categories: { id: string; name: string; percentage: number; isSavings: boolean }[];
+  categories: {
+    id: string;
+    name: string;
+    percentage: number;
+    isSavings: boolean;
+  }[];
 };
 
 export function BudgetPlanList({
@@ -73,9 +78,9 @@ export function BudgetPlanList({
               className={isActive ? "border-primary" : undefined}
             >
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex flex-wrap items-center gap-2">
                       {plan.name}
                       {isActive && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
@@ -84,13 +89,13 @@ export function BudgetPlanList({
                         </span>
                       )}
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="hidden sm:block">
                       {plan.categories
                         .map((c) => `${c.name} (${c.percentage}%)`)
                         .join(" / ")}
                     </CardDescription>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -100,7 +105,11 @@ export function BudgetPlanList({
                       Edit
                     </Button>
                     {!isActive && (
-                      <form action={async (formData: FormData) => { await setActiveBudgetPlan(formData); }}>
+                      <form
+                        action={async (formData: FormData) => {
+                          await setActiveBudgetPlan(formData);
+                        }}
+                      >
                         <input type="hidden" name="planId" value={plan.id} />
                         <Button type="submit" variant="outline" size="sm">
                           Use This Plan
@@ -114,7 +123,7 @@ export function BudgetPlanList({
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:flex">
                   {plan.categories.map((category) => (
                     <div
                       key={category.id}
@@ -156,13 +165,13 @@ function EditPlanForm({
       name: c.name,
       percentage: String(c.percentage),
       isSavings: c.isSavings,
-    }))
+    })),
   );
 
   const [state, formAction, pending] = useActionState(
     async (
       _prev: { success: boolean; error?: string } | null,
-      formData: FormData
+      formData: FormData,
     ) => {
       const result = await updateBudgetPlan(formData);
       if (result.success) {
@@ -170,32 +179,40 @@ function EditPlanForm({
       }
       return result;
     },
-    null
+    null,
   );
 
   const total = categories.reduce(
     (sum, c) => sum + (parseFloat(c.percentage) || 0),
-    0
+    0,
   );
 
   const updateCategory = (
     index: number,
     field: "name" | "percentage",
-    value: string
+    value: string,
   ) => {
     setCategories((prev) =>
-      prev.map((c, i) => (i === index ? { ...c, [field]: value } : c))
+      prev.map((c, i) => (i === index ? { ...c, [field]: value } : c)),
     );
   };
 
   const toggleSavings = (index: number) => {
     setCategories((prev) =>
-      prev.map((c, i) => (i === index ? { ...c, isSavings: !c.isSavings } : c))
+      prev.map((c, i) => (i === index ? { ...c, isSavings: !c.isSavings } : c)),
     );
   };
 
   const addCategory = () => {
-    setCategories((prev) => [...prev, { id: undefined as unknown as string, name: "", percentage: "", isSavings: false }]);
+    setCategories((prev) => [
+      ...prev,
+      {
+        id: undefined as unknown as string,
+        name: "",
+        percentage: "",
+        isSavings: false,
+      },
+    ]);
   };
 
   const removeCategory = (index: number) => {
@@ -222,7 +239,7 @@ function EditPlanForm({
                 name: c.name,
                 percentage: parseFloat(c.percentage) || 0,
                 isSavings: c.isSavings,
-              }))
+              })),
             )}
           />
 
@@ -242,45 +259,50 @@ function EditPlanForm({
           <div className="space-y-3">
             <label className="text-sm font-medium">Categories</label>
             {categories.map((cat, i) => (
-              <div key={cat.id || `new-${i}`} className="flex items-center gap-2">
+              <div
+                key={cat.id || `new-${i}`}
+                className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center sm:border-0 sm:p-0"
+              >
                 <Input
                   placeholder="Category name"
                   value={cat.name}
                   onChange={(e) => updateCategory(i, "name", e.target.value)}
                   required
                 />
-                <Input
-                  type="number"
-                  placeholder="%"
-                  className="w-24"
-                  value={cat.percentage}
-                  onChange={(e) =>
-                    updateCategory(i, "percentage", e.target.value)
-                  }
-                  min="1"
-                  max="100"
-                  required
-                />
-                <Button
-                  type="button"
-                  variant={cat.isSavings ? "default" : "outline"}
-                  size="sm"
-                  className="h-9 shrink-0 text-xs"
-                  onClick={() => toggleSavings(i)}
-                >
-                  Savings
-                </Button>
-                {categories.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    placeholder="%"
+                    className="w-20 sm:w-24"
+                    value={cat.percentage}
+                    onChange={(e) =>
+                      updateCategory(i, "percentage", e.target.value)
+                    }
+                    min="1"
+                    max="100"
+                    required
+                  />
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant={cat.isSavings ? "default" : "outline"}
                     size="sm"
-                    className="h-9 w-9 shrink-0 p-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => removeCategory(i)}
+                    className="h-9 shrink-0 text-xs"
+                    onClick={() => toggleSavings(i)}
                   >
-                    <X className="h-4 w-4" />
+                    Savings
                   </Button>
-                )}
+                  {categories.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 shrink-0 p-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeCategory(i)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
             <Button
@@ -337,7 +359,7 @@ function CustomPlanForm() {
   const [state, formAction, pending] = useActionState(
     async (
       _prev: { success: boolean; error?: string } | null,
-      formData: FormData
+      formData: FormData,
     ) => {
       const result = await createCustomPlan(formData);
       if (result.success) {
@@ -348,32 +370,35 @@ function CustomPlanForm() {
       }
       return result;
     },
-    null
+    null,
   );
 
   const total = categories.reduce(
     (sum, c) => sum + (parseFloat(c.percentage) || 0),
-    0
+    0,
   );
 
   const updateCategory = (
     index: number,
     field: "name" | "percentage",
-    value: string
+    value: string,
   ) => {
     setCategories((prev) =>
-      prev.map((c, i) => (i === index ? { ...c, [field]: value } : c))
+      prev.map((c, i) => (i === index ? { ...c, [field]: value } : c)),
     );
   };
 
   const toggleSavings = (index: number) => {
     setCategories((prev) =>
-      prev.map((c, i) => (i === index ? { ...c, isSavings: !c.isSavings } : c))
+      prev.map((c, i) => (i === index ? { ...c, isSavings: !c.isSavings } : c)),
     );
   };
 
   const addCategory = () => {
-    setCategories((prev) => [...prev, { name: "", percentage: "", isSavings: false }]);
+    setCategories((prev) => [
+      ...prev,
+      { name: "", percentage: "", isSavings: false },
+    ]);
   };
 
   const removeCategory = (index: number) => {
@@ -398,7 +423,7 @@ function CustomPlanForm() {
                 name: c.name,
                 percentage: parseFloat(c.percentage) || 0,
                 isSavings: c.isSavings,
-              }))
+              })),
             )}
           />
 
@@ -417,45 +442,50 @@ function CustomPlanForm() {
           <div className="space-y-3">
             <label className="text-sm font-medium">Categories</label>
             {categories.map((cat, i) => (
-              <div key={i} className="flex items-center gap-2">
+              <div
+                key={i}
+                className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center sm:border-0 sm:p-0"
+              >
                 <Input
                   placeholder="Category name"
                   value={cat.name}
                   onChange={(e) => updateCategory(i, "name", e.target.value)}
                   required
                 />
-                <Input
-                  type="number"
-                  placeholder="%"
-                  className="w-24"
-                  value={cat.percentage}
-                  onChange={(e) =>
-                    updateCategory(i, "percentage", e.target.value)
-                  }
-                  min="1"
-                  max="100"
-                  required
-                />
-                <Button
-                  type="button"
-                  variant={cat.isSavings ? "default" : "outline"}
-                  size="sm"
-                  className="h-9 shrink-0 text-xs"
-                  onClick={() => toggleSavings(i)}
-                >
-                  Savings
-                </Button>
-                {categories.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    placeholder="%"
+                    className="w-20 sm:w-24"
+                    value={cat.percentage}
+                    onChange={(e) =>
+                      updateCategory(i, "percentage", e.target.value)
+                    }
+                    min="1"
+                    max="100"
+                    required
+                  />
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant={cat.isSavings ? "default" : "outline"}
                     size="sm"
-                    className="h-9 w-9 shrink-0 p-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => removeCategory(i)}
+                    className="h-9 shrink-0 text-xs"
+                    onClick={() => toggleSavings(i)}
                   >
-                    <X className="h-4 w-4" />
+                    Savings
                   </Button>
-                )}
+                  {categories.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 shrink-0 p-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeCategory(i)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
             <Button
@@ -498,24 +528,34 @@ function CustomPlanForm() {
   );
 }
 
-function DeletePlanButton({ planId, planName }: { planId: string; planName: string }) {
+function DeletePlanButton({
+  planId,
+  planName,
+}: {
+  planId: string;
+  planName: string;
+}) {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(
     async (
       _prev: { success: boolean; error?: string } | null,
-      formData: FormData
+      formData: FormData,
     ) => {
       const result = await deleteBudgetPlan(formData);
       if (result.success) setOpen(false);
       return result;
     },
-    null
+    null,
   );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground hover:text-destructive"
+        >
           <Trash2 className="mr-1 h-3.5 w-3.5" />
           Delete
         </Button>
@@ -524,11 +564,13 @@ function DeletePlanButton({ planId, planName }: { planId: string; planName: stri
         <DialogHeader>
           <DialogTitle>Delete &ldquo;{planName}&rdquo;?</DialogTitle>
           <DialogDescription>
-            This will permanently delete this plan. Transactions using its categories
-            will lose their category assignment.
+            This will permanently delete this plan. Transactions using its
+            categories will lose their category assignment.
           </DialogDescription>
         </DialogHeader>
-        {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
+        {state?.error && (
+          <p className="text-sm text-destructive">{state.error}</p>
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
             Cancel

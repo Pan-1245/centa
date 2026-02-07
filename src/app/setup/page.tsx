@@ -18,8 +18,8 @@ export default async function SetupPage() {
             Welcome to <span className="text-primary">Centa</span>
           </h1>
           <p className="mt-3 text-lg text-muted-foreground">
-            Choose a budget plan to get started, or create your own.
-            You can always change it later.
+            Choose a budget plan to get started, or create your own. You can
+            always change it later.
           </p>
         </div>
 

@@ -43,13 +43,14 @@ export function AddTransactionDialog({
 
   const expenseCategories = categories.filter((c) => !c.isSavings);
   const savingsCategories = categories.filter((c) => c.isSavings);
-  const visibleCategories = type === "SAVINGS" ? savingsCategories : expenseCategories;
+  const visibleCategories =
+    type === "SAVINGS" ? savingsCategories : expenseCategories;
   const needsCategory = type === "EXPENSE" || type === "SAVINGS";
 
   const [state, formAction, pending] = useActionState(
     async (
       _prev: { success: boolean; error?: string } | null,
-      formData: FormData
+      formData: FormData,
     ) => {
       const result = await createTransaction(formData);
       if (result.success) {
@@ -62,7 +63,7 @@ export function AddTransactionDialog({
       }
       return result;
     },
-    null
+    null,
   );
 
   return (
@@ -85,7 +86,11 @@ export function AddTransactionDialog({
             <label htmlFor="amount" className="text-sm font-medium">
               Amount (฿ THB)
             </label>
-            <input type="hidden" name="amount" value={amount.replace(/,/g, "")} />
+            <input
+              type="hidden"
+              name="amount"
+              value={amount.replace(/,/g, "")}
+            />
             <Input
               id="amount"
               type="text"
@@ -169,7 +174,11 @@ export function AddTransactionDialog({
               name="date"
               value={date ? date.toISOString().split("T")[0] : ""}
             />
-            <DatePicker value={date} onChange={setDate} placeholder="Pick a date" />
+            <DatePicker
+              value={date}
+              onChange={setDate}
+              placeholder="Pick a date"
+            />
           </div>
 
           {state?.error && (
@@ -177,7 +186,10 @@ export function AddTransactionDialog({
           )}
 
           <DialogFooter>
-            <Button type="submit" disabled={pending || (needsCategory && !categoryId)}>
+            <Button
+              type="submit"
+              disabled={pending || (needsCategory && !categoryId)}
+            >
               {pending ? "Adding..." : "Add Transaction"}
             </Button>
           </DialogFooter>

@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { updateCurrency } from "@/lib/actions";
 import type { CurrencyCode } from "@/lib/currency";
+import { Menu, X } from "lucide-react";
 
 const navLinks = [
   { href: "/", label: "Dashboard" },
@@ -21,17 +23,22 @@ const currencies: { code: CurrencyCode; label: string }[] = [
 
 export function Nav({ currency = "THB" }: { currency?: string }) {
   const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (pathname === "/setup") return null;
 
   return (
     <nav className="border-b bg-card">
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-6">
-          <Link href="/" className="text-lg font-semibold tracking-tight text-primary">
+          <Link
+            href="/"
+            className="text-lg font-semibold tracking-tight text-primary"
+          >
             Centa
           </Link>
-          <div className="flex gap-1">
+          {/* Desktop navigation */}
+          <div className="hidden sm:flex gap-1">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -40,7 +47,7 @@ export function Nav({ currency = "THB" }: { currency?: string }) {
                   "rounded-md px-3 py-1.5 text-sm transition-colors",
                   pathname === link.href
                     ? "bg-primary/10 font-medium text-primary"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                 )}
               >
                 {link.label}
@@ -49,28 +56,67 @@ export function Nav({ currency = "THB" }: { currency?: string }) {
           </div>
         </div>
 
-        <div className="flex gap-1 rounded-md border p-0.5">
-          {currencies.map((c) => (
-            <button
-              key={c.code}
-              onClick={async () => {
-                if (c.code === currency) return;
-                const fd = new FormData();
-                fd.set("currency", c.code);
-                await updateCurrency(fd);
-              }}
-              className={cn(
-                "rounded px-2 py-1 text-xs font-medium transition-colors",
-                c.code === currency
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {c.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          {/* Currency selector - visible on all sizes */}
+          <div className="flex gap-1 rounded-md border p-0.5">
+            {currencies.map((c) => (
+              <button
+                key={c.code}
+                onClick={async () => {
+                  if (c.code === currency) return;
+                  const fd = new FormData();
+                  fd.set("currency", c.code);
+                  await updateCurrency(fd);
+                }}
+                className={cn(
+                  "rounded px-2 py-1 text-xs font-medium transition-colors",
+                  c.code === currency
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="sm:hidden rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
+          </button>
         </div>
       </div>
+
+      {/* Mobile navigation menu */}
+      {mobileMenuOpen && (
+        <div className="sm:hidden border-t bg-card">
+          <div className="flex flex-col py-2 px-4">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  "rounded-md px-3 py-2.5 text-sm transition-colors",
+                  pathname === link.href
+                    ? "bg-primary/10 font-medium text-primary"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

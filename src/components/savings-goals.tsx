@@ -28,7 +28,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Trash2, Target } from "lucide-react";
-import { formatAmount, type CurrencyCode, type ExchangeRates } from "@/lib/currency";
+import {
+  formatAmount,
+  type CurrencyCode,
+  type ExchangeRates,
+} from "@/lib/currency";
 
 type Goal = {
   id: string;
@@ -61,10 +65,12 @@ export function SavingsGoals({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle>Savings Goals</CardTitle>
-            <CardDescription>Track progress toward your savings targets.</CardDescription>
+            <CardDescription>
+              Track progress toward your savings targets.
+            </CardDescription>
           </div>
           <AddGoalDialog savingsCategories={savingsCategories} />
         </div>
@@ -77,17 +83,21 @@ export function SavingsGoals({
         ) : (
           <div className="space-y-4">
             {goals.map((goal) => {
-              const pct = goal.targetAmount > 0
-                ? Math.min(100, (goal.currentAmount / goal.targetAmount) * 100)
-                : 0;
+              const pct =
+                goal.targetAmount > 0
+                  ? Math.min(
+                      100,
+                      (goal.currentAmount / goal.targetAmount) * 100,
+                    )
+                  : 0;
               const reached = goal.currentAmount >= goal.targetAmount;
 
               return (
                 <div key={goal.id} className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2 font-medium">
-                      <Target className="h-3.5 w-3.5 text-primary" />
-                      {goal.name}
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-sm">
+                    <span className="flex flex-wrap items-center gap-2 font-medium">
+                      <Target className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <span className="truncate">{goal.name}</span>
                       {goal.category && (
                         <span className="text-xs text-muted-foreground">
                           ({goal.category.name})
@@ -99,9 +109,15 @@ export function SavingsGoals({
                         </span>
                       )}
                     </span>
-                    <span className="flex items-center gap-2">
-                      <span>{fmt(goal.currentAmount)} / {fmt(goal.targetAmount)}</span>
-                      <form action={async (formData: FormData) => { await deleteSavingsGoal(formData); }}>
+                    <span className="flex items-center gap-2 text-xs sm:text-sm">
+                      <span className="text-muted-foreground sm:text-foreground">
+                        {fmt(goal.currentAmount)} / {fmt(goal.targetAmount)}
+                      </span>
+                      <form
+                        action={async (formData: FormData) => {
+                          await deleteSavingsGoal(formData);
+                        }}
+                      >
                         <input type="hidden" name="id" value={goal.id} />
                         <Button
                           type="submit"
@@ -122,7 +138,8 @@ export function SavingsGoals({
                   </div>
                   {goal.deadline && (
                     <p className="text-xs text-muted-foreground">
-                      Deadline: {new Date(goal.deadline).toLocaleDateString("en-US", {
+                      Deadline:{" "}
+                      {new Date(goal.deadline).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
@@ -139,7 +156,11 @@ export function SavingsGoals({
   );
 }
 
-function AddGoalDialog({ savingsCategories }: { savingsCategories: Category[] }) {
+function AddGoalDialog({
+  savingsCategories,
+}: {
+  savingsCategories: Category[];
+}) {
   const [open, setOpen] = useState(false);
   const [categoryId, setCategoryId] = useState("");
   const [amount, setAmount] = useState("");
@@ -147,7 +168,7 @@ function AddGoalDialog({ savingsCategories }: { savingsCategories: Category[] })
   const [state, formAction, pending] = useActionState(
     async (
       _prev: { success: boolean; error?: string } | null,
-      formData: FormData
+      formData: FormData,
     ) => {
       const result = await createSavingsGoal(formData);
       if (result.success) {
@@ -157,7 +178,7 @@ function AddGoalDialog({ savingsCategories }: { savingsCategories: Category[] })
       }
       return result;
     },
-    null
+    null,
   );
 
   return (
@@ -177,13 +198,22 @@ function AddGoalDialog({ savingsCategories }: { savingsCategories: Category[] })
         </DialogHeader>
         <form action={formAction} className="space-y-4">
           <input type="hidden" name="categoryId" value={categoryId} />
-          <input type="hidden" name="targetAmount" value={amount.replace(/,/g, "")} />
+          <input
+            type="hidden"
+            name="targetAmount"
+            value={amount.replace(/,/g, "")}
+          />
 
           <div className="space-y-2">
             <label htmlFor="goal-name" className="text-sm font-medium">
               Goal Name
             </label>
-            <Input id="goal-name" name="name" placeholder="e.g. Emergency Fund" required />
+            <Input
+              id="goal-name"
+              name="name"
+              placeholder="e.g. Emergency Fund"
+              required
+            />
           </div>
 
           <div className="space-y-2">
