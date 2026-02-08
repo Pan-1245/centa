@@ -14,25 +14,31 @@ export async function getSavingsGoals() {
     orderBy: { createdAt: "asc" },
   });
 
-  const goalsWithProgress = await Promise.all(
-    goals.map(async (goal) => {
-      let currentAmount = 0;
-      if (goal.categoryId) {
-        const agg = await prisma.transaction.aggregate({
+  const categoryIds = goals
+    .filter((g) => g.categoryId)
+    .map((g) => g.categoryId!);
+
+  const aggregates =
+    categoryIds.length > 0
+      ? await prisma.transaction.groupBy({
+          by: ["categoryId"],
           where: {
             userId: user.id,
-            categoryId: goal.categoryId,
+            categoryId: { in: categoryIds },
             type: TransactionType.SAVINGS,
           },
           _sum: { amount: true },
-        });
-        currentAmount = agg._sum.amount ?? 0;
-      }
-      return { ...goal, currentAmount };
-    }),
+        })
+      : [];
+
+  const amountMap = new Map(
+    aggregates.map((a) => [a.categoryId, a._sum.amount ?? 0]),
   );
 
-  return goalsWithProgress;
+  return goals.map((goal) => ({
+    ...goal,
+    currentAmount: goal.categoryId ? (amountMap.get(goal.categoryId) ?? 0) : 0,
+  }));
 }
 
 export async function createSavingsGoal(formData: FormData) {

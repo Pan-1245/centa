@@ -13,6 +13,7 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 vi.mock("@/lib/auth-utils", () => ({
+  getSession: vi.fn().mockResolvedValue({ user: TEST_USER }),
   requireAuth: vi.fn().mockResolvedValue(TEST_USER),
 }));
 
@@ -940,9 +941,9 @@ describe("getSavingsGoals", () => {
         category: { name: "Savings" },
       },
     ]);
-    mockPrisma.transaction.aggregate.mockResolvedValue({
-      _sum: { amount: 25000 },
-    });
+    mockPrisma.transaction.groupBy.mockResolvedValue([
+      { categoryId: "cat1", _sum: { amount: 25000 } },
+    ]);
 
     const result = await getSavingsGoals();
     expect(result).toHaveLength(1);
