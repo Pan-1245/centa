@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
-import { getOrCreateUserConfig } from "@/lib/actions/config";
+
 import { SetupForm } from "@/components/setup-form";
+import { getOrCreateUserConfig } from "@/lib/actions/config";
 
 export const dynamic = "force-dynamic";
 

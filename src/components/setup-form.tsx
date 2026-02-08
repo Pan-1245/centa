@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useActionState } from "react";
-import { initializeApp, initializeWithCustomPlan } from "@/lib/actions/config";
+import { ArrowLeft, LayoutTemplate, PenLine, Plus, X } from "lucide-react";
+import { useActionState, useState } from "react";
+
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -11,7 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Plus, X, ArrowLeft, LayoutTemplate, PenLine } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { initializeApp, initializeWithCustomPlan } from "@/lib/actions/config";
 
 const presetPlans = [
   {

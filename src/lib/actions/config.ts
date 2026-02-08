@@ -1,10 +1,11 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
-import { requireAuth } from "@/lib/auth-utils";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+
+import { auth } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth-utils";
+import { prisma } from "@/lib/prisma";
 
 const defaultPlans = [
   {

@@ -1,11 +1,7 @@
 "use client";
 
-import { deleteTransaction } from "@/lib/actions/transactions";
-import {
-  formatAmount,
-  type CurrencyCode,
-  type ExchangeRates,
-} from "@/lib/currency";
+import { Trash2 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -15,7 +11,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Trash2 } from "lucide-react";
+import { deleteTransaction } from "@/lib/actions/transactions";
+import {
+  formatAmount,
+  type CurrencyCode,
+  type ExchangeRates,
+} from "@/lib/currency";
 
 type Transaction = {
   id: string;

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useActionState } from "react";
-import { createSavingsGoal, deleteSavingsGoal } from "@/lib/actions/savings";
+import { Plus, Target, Trash2 } from "lucide-react";
+import { useActionState, useState } from "react";
+
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -27,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Target } from "lucide-react";
+import { createSavingsGoal, deleteSavingsGoal } from "@/lib/actions/savings";
 import {
   formatAmount,
   type CurrencyCode,

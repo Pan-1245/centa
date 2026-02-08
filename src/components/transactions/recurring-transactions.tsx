@@ -1,13 +1,9 @@
 "use client";
 
-import { useState, useActionState } from "react";
-import {
-  createRecurringTransaction,
-  deleteRecurringTransaction,
-  toggleRecurringTransaction,
-} from "@/lib/actions/recurring";
+import { Plus, Repeat, Trash2 } from "lucide-react";
+import { useActionState, useState } from "react";
+
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -24,6 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -31,7 +28,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Repeat } from "lucide-react";
+import {
+  createRecurringTransaction,
+  deleteRecurringTransaction,
+  toggleRecurringTransaction,
+} from "@/lib/actions/recurring";
 import {
   formatAmount,
   type CurrencyCode,

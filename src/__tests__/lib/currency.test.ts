@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import {
+  CURRENCIES,
+  fetchExchangeRates,
   formatAmount,
   timeAgo,
-  fetchExchangeRates,
-  CURRENCIES,
 } from "@/lib/currency";
 
 describe("formatAmount", () => {

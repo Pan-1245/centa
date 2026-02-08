@@ -1,14 +1,9 @@
 "use client";
 
-import { useState, useActionState } from "react";
-import {
-  setActiveBudgetPlan,
-  createCustomPlan,
-  updateBudgetPlan,
-  deleteBudgetPlan,
-} from "@/lib/actions/budget";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { useActionState, useState } from "react";
+
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -16,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +20,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  createCustomPlan,
+  deleteBudgetPlan,
+  setActiveBudgetPlan,
+  updateBudgetPlan,
+} from "@/lib/actions/budget";
 
 type Plan = {
   id: string;

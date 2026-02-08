@@ -1,10 +1,11 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-utils";
 import { revalidatePath } from "next/cache";
+
 import { TransactionType } from "@/generated/prisma/enums";
 import { getOrCreateUserConfig } from "@/lib/actions/config";
+import { requireAuth } from "@/lib/auth-utils";
+import { prisma } from "@/lib/prisma";
 
 export async function getBudgetPlans() {
   const user = await requireAuth();

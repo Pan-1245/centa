@@ -1,3 +1,6 @@
+import { redirect } from "next/navigation";
+
+import { SavingsGoals } from "@/components/savings/savings-goals";
 import {
   Card,
   CardContent,
@@ -5,19 +8,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { redirect } from "next/navigation";
 import { getOrCreateUserConfig } from "@/lib/actions/config";
 import { getDashboardStats } from "@/lib/actions/dashboard";
-import { getSavingsGoals } from "@/lib/actions/savings";
 import { processRecurringTransactions } from "@/lib/actions/recurring";
+import { getSavingsGoals } from "@/lib/actions/savings";
 import {
+  CURRENCIES,
   fetchExchangeRates,
   formatAmount,
   timeAgo,
-  CURRENCIES,
   type CurrencyCode,
 } from "@/lib/currency";
-import { SavingsGoals } from "@/components/savings/savings-goals";
 
 export const dynamic = "force-dynamic";
 

@@ -1,14 +1,15 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { redirect } from "next/navigation";
+
+import { SummaryYearCard } from "@/components/summary/summary-year-card";
+import { Card, CardContent } from "@/components/ui/card";
 import { getOrCreateUserConfig } from "@/lib/actions/config";
 import { getMonthlySummary } from "@/lib/actions/transactions";
 import {
+  CURRENCIES,
   fetchExchangeRates,
   timeAgo,
-  CURRENCIES,
   type CurrencyCode,
 } from "@/lib/currency";
-import { SummaryYearCard } from "@/components/summary/summary-year-card";
 
 export const dynamic = "force-dynamic";
 

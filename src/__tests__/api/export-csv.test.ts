@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { GET } from "@/app/api/export-csv/route";
 
 const TEST_USER = vi.hoisted(() => ({
   id: "test-user-id",
@@ -16,8 +18,6 @@ vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/auth", () => ({
   auth: vi.fn().mockResolvedValue({ user: TEST_USER }),
 }));
-
-import { GET } from "@/app/api/export-csv/route";
 
 describe("GET /api/export-csv", () => {
   beforeEach(() => {

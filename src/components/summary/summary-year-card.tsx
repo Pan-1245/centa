@@ -1,6 +1,8 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { Fragment, useState } from "react";
+
 import {
   Card,
   CardContent,
@@ -17,17 +19,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ChevronDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import type {
+  MonthSummary,
+  MonthTransaction,
+} from "@/lib/actions/transactions";
 import {
   formatAmount,
   type CurrencyCode,
   type ExchangeRates,
 } from "@/lib/currency";
-import type {
-  MonthTransaction,
-  MonthSummary,
-} from "@/lib/actions/transactions";
+import { cn } from "@/lib/utils";
 
 const MONTH_NAMES = [
   "January",

@@ -1,3 +1,9 @@
+import { redirect } from "next/navigation";
+
+import { AddTransactionDialog } from "@/components/transactions/add-transaction-dialog";
+import { RecurringTransactions } from "@/components/transactions/recurring-transactions";
+import { TransactionFilters } from "@/components/transactions/transaction-filters";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -5,15 +11,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { redirect } from "next/navigation";
 import { getOrCreateUserConfig } from "@/lib/actions/config";
-import { getTransactions, getTags } from "@/lib/actions/transactions";
 import { getRecurringTransactions } from "@/lib/actions/recurring";
+import { getTags, getTransactions } from "@/lib/actions/transactions";
 import { fetchExchangeRates, type CurrencyCode } from "@/lib/currency";
-import { AddTransactionDialog } from "@/components/transactions/add-transaction-dialog";
-import { TransactionFilters } from "@/components/transactions/transaction-filters";
-import { RecurringTransactions } from "@/components/transactions/recurring-transactions";
-import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
