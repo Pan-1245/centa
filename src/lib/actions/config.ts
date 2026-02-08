@@ -2,9 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
-import { auth } from "@/lib/auth";
-import { requireAuth } from "@/lib/auth-utils";
+import { getSession, requireAuth } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
 
 const defaultPlans = [
@@ -28,34 +28,36 @@ const defaultPlans = [
   },
 ];
 
-export async function getOrCreateUserConfig() {
-  const session = await auth();
-  if (!session?.user?.id) return null;
-  const userId = session.user.id;
+export const getOrCreateUserConfig = cache(
+  async function getOrCreateUserConfig() {
+    const session = await getSession();
+    if (!session?.user?.id) return null;
+    const userId = session.user.id;
 
-  let config = await prisma.userConfig.findFirst({
-    where: { userId },
-    include: { activePlan: { include: { categories: true } } },
-  });
-
-  if (!config) {
-    const defaultPlan = await prisma.budgetPlan.findFirst({
-      where: { isDefault: true, userId },
-      include: { categories: true },
-    });
-
-    if (!defaultPlan) {
-      return null;
-    }
-
-    config = await prisma.userConfig.create({
-      data: { userId, activePlanId: defaultPlan.id },
+    let config = await prisma.userConfig.findFirst({
+      where: { userId },
       include: { activePlan: { include: { categories: true } } },
     });
-  }
 
-  return config;
-}
+    if (!config) {
+      const defaultPlan = await prisma.budgetPlan.findFirst({
+        where: { isDefault: true, userId },
+        include: { categories: true },
+      });
+
+      if (!defaultPlan) {
+        return null;
+      }
+
+      config = await prisma.userConfig.create({
+        data: { userId, activePlanId: defaultPlan.id },
+        include: { activePlan: { include: { categories: true } } },
+      });
+    }
+
+    return config;
+  },
+);
 
 export async function initializeApp(formData: FormData) {
   const user = await requireAuth();

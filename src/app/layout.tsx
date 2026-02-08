@@ -5,7 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import { Nav } from "@/components/nav";
 import { getOrCreateUserConfig } from "@/lib/actions/config";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth-utils";
 
 import "./globals.css";
 
@@ -48,7 +48,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await auth();
+  const session = await getSession();
   const config = session ? await getOrCreateUserConfig() : null;
 
   return (

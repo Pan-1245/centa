@@ -15,8 +15,8 @@ const mockPrisma = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
-vi.mock("@/lib/auth", () => ({
-  auth: vi.fn().mockResolvedValue({ user: TEST_USER }),
+vi.mock("@/lib/auth-utils", () => ({
+  getSession: vi.fn().mockResolvedValue({ user: TEST_USER }),
 }));
 
 describe("GET /api/export-csv", () => {
@@ -126,9 +126,9 @@ describe("GET /api/export-csv", () => {
   });
 
   it("returns 401 when not authenticated", async () => {
-    const { auth } = await import("@/lib/auth");
+    const { getSession } = await import("@/lib/auth-utils");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(auth).mockResolvedValueOnce(null as any);
+    vi.mocked(getSession).mockResolvedValueOnce(null as any);
 
     const response = await GET();
     expect(response.status).toBe(401);
