@@ -1,8 +1,11 @@
+import { Analytics } from "@vercel/analytics/react";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+
 import { Nav } from "@/components/nav";
-import { auth } from "@/lib/auth";
 import { getOrCreateUserConfig } from "@/lib/actions/config";
+import { auth } from "@/lib/auth";
+
 import "./globals.css";
 
 const geistSans = Geist({
@@ -59,6 +62,7 @@ export default async function RootLayout({
         <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
           {children}
         </main>
+        <Analytics />
       </body>
     </html>
   );
